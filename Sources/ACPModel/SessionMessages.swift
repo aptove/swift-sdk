@@ -198,7 +198,7 @@ public struct PromptResponse: AcpResponse, Codable, Sendable, Hashable {
 /// Notification containing session updates from the agent.
 ///
 /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
-public struct SessionNotification: AcpNotification, Codable, Sendable, Hashable {
+public struct SessionNotification: AcpNotification, AcpWithSessionId, Codable, Sendable, Hashable {
     /// The session ID
     public let sessionId: SessionId
 
@@ -212,10 +212,16 @@ public struct SessionNotification: AcpNotification, Codable, Sendable, Hashable 
     public init(
         sessionId: SessionId,
         update: SessionUpdate,
-        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+        meta: MetaField? = nil
     ) {
         self.sessionId = sessionId
         self.update = update
-        self._meta = _meta
+        self._meta = meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionId = "sessionId"
+        case update = "update"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
     }
 }

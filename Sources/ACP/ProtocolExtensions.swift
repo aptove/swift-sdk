@@ -44,6 +44,32 @@ extension Protocol {
         return try decodeResult(response.result, as: PromptResponse.self)
     }
 
+    /// Set the session mode.
+    ///
+    /// - Parameter request: Session mode change parameters
+    /// - Returns: Response confirming the request
+    /// - Throws: ProtocolError if the request fails
+    public func setSessionMode(request: SetSessionModeRequest) async throws -> SetSessionModeResponse {
+        let response = try await sendRequest(method: "session/set_mode", params: request)
+        return try decodeResult(response.result, as: SetSessionModeResponse.self)
+    }
+
+    /// Send a cancel notification for a session.
+    ///
+    /// - Parameter notification: Cancel notification with session ID
+    /// - Throws: ProtocolError if the notification fails to send
+    public func sendCancel(notification: CancelNotification) async throws {
+        try await sendNotification(method: "acp/session/cancel", params: notification)
+    }
+
+    /// Send a cancel request notification to cancel a specific request.
+    ///
+    /// - Parameter notification: Cancel request notification with request ID
+    /// - Throws: ProtocolError if the notification fails to send
+    public func sendCancelRequest(notification: CancelRequestNotification) async throws {
+        try await sendNotification(method: "$/cancelRequest", params: notification)
+    }
+
     // MARK: - Helper Methods
 
     /// Decode a JsonValue result into a specific type.
