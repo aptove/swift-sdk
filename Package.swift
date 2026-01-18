@@ -26,6 +26,16 @@ public let package = Package(
         .library(
             name: "ACPHTTP",
             targets: ["ACPHTTP"]
+        ),
+        // Example: Echo Agent
+        .executable(
+            name: "EchoAgent",
+            targets: ["EchoAgent"]
+        ),
+        // Example: Simple Client
+        .executable(
+            name: "SimpleClient",
+            targets: ["SimpleClient"]
         )
     ],
     dependencies: [
@@ -79,6 +89,24 @@ public let package = Package(
             name: "ACPHTTPTests",
             dependencies: ["ACPHTTP"],
             path: "Tests/ACPHTTPTests"
+        ),
+
+        // MARK: - Example Executables
+        .executableTarget(
+            name: "EchoAgent",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Sources/EchoAgent"
+        ),
+        .executableTarget(
+            name: "SimpleClient",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Sources/SimpleClient"
         )
     ]
 )
