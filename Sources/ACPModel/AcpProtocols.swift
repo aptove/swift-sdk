@@ -4,28 +4,21 @@ import Foundation
 ///
 /// ACP requests are messages that expect a response. They are sent via
 /// JSON-RPC and include a request ID for correlation.
-public protocol AcpRequest: Codable, Sendable {
-    /// The associated response type for this request
-    associatedtype Response: AcpResponse
-
-    /// The ACP method name for this request
-    static var method: String { get }
+public protocol AcpRequest: AcpWithMeta {
 }
 
 /// Base protocol for all ACP response messages.
 ///
 /// ACP responses are returned in reply to requests and contain the
 /// result of the requested operation.
-public protocol AcpResponse: Codable, Sendable {
+public protocol AcpResponse: AcpWithMeta {
 }
 
 /// Base protocol for all ACP notification messages.
 ///
 /// ACP notifications are one-way messages that do not expect a response.
 /// They are used for events and streaming updates.
-public protocol AcpNotification: Codable, Sendable {
-    /// The ACP method name for this notification
-    static var method: String { get }
+public protocol AcpNotification: AcpWithMeta {
 }
 
 /// Protocol for messages that include a session ID.
