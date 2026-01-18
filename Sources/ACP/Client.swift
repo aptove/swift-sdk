@@ -87,6 +87,12 @@ public enum ClientError: Error, Sendable, LocalizedError {
     /// Invalid response received from agent.
     case invalidResponse(String)
 
+    /// Operation not implemented by the client.
+    case notImplemented(String)
+
+    /// Request failed with an error.
+    case requestFailed(String)
+
     public var errorDescription: String? {
         switch self {
         case .notConnected:
@@ -99,6 +105,10 @@ public enum ClientError: Error, Sendable, LocalizedError {
             return "Request timed out"
         case .invalidResponse(let message):
             return "Invalid response: \(message)"
+        case .notImplemented(let operation):
+            return "Operation not implemented: \(operation)"
+        case .requestFailed(let reason):
+            return "Request failed: \(reason)"
         }
     }
 }
