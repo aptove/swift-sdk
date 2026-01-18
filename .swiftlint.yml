@@ -1,0 +1,83 @@
+# SwiftLint Configuration for ACP Swift SDK
+
+# Opt-in rules
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - sorted_first_last
+  - modifier_order
+  - multiline_parameters
+  - closure_spacing
+  - operator_usage_whitespace
+  - redundant_type_annotation
+  - explicit_top_level_acl
+  - explicit_enum_raw_value
+
+# Disabled rules
+disabled_rules:
+  - todo # Allow TODO comments during development
+  - line_length # Handled by swift-format
+
+# File length limits
+file_length:
+  warning: 500
+  error: 800
+
+# Type body length limits
+type_body_length:
+  warning: 300
+  error: 500
+
+# Function body length limits
+function_body_length:
+  warning: 50
+  error: 100
+
+# Type name rules
+type_name:
+  min_length: 3
+  max_length:
+    warning: 40
+    error: 50
+  excluded:
+    - ID
+    - URL
+    - URI
+
+# Identifier name rules
+identifier_name:
+  min_length: 1
+  max_length:
+    warning: 40
+    error: 50
+  excluded:
+    - id
+    - x
+    - y
+    - i
+    - j
+    - k
+    - to
+    - db
+    - ok
+    - lhs
+    - rhs
+
+# Nesting rules
+nesting:
+  type_level:
+    warning: 2
+  statement_level:
+    warning: 5
+
+# Excluded paths
+excluded:
+  - .build
+  - .swiftpm
+  - Tests/LinuxMain.swift
+  - "**/.*"
+
+# Reporter
+reporter: "xcode"
