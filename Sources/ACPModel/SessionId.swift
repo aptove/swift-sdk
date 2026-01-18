@@ -7,26 +7,26 @@ import Foundation
 /// session is created and used in all subsequent session-scoped operations.
 public struct SessionId: Hashable, Codable, Sendable {
     public let value: String
-    
+
     /// Creates a new session ID with a random UUID.
     public init() {
         self.value = UUID().uuidString
     }
-    
+
     /// Creates a session ID from an existing string value.
     ///
     /// - Parameter value: The session ID string
     public init(value: String) {
         self.value = value
     }
-    
+
     // MARK: - Codable
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         self.value = try container.decode(String.self)
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(value)

@@ -12,12 +12,12 @@ public enum JsonValue: Codable, Sendable, Hashable {
     case string(String)
     case array([JsonValue])
     case object([String: JsonValue])
-    
+
     // MARK: - Codable
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             self = .null
         } else if let bool = try? container.decode(Bool.self) {
@@ -39,10 +39,10 @@ public enum JsonValue: Codable, Sendable, Hashable {
             )
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch self {
         case .null:
             try container.encodeNil()
@@ -70,13 +70,13 @@ extension JsonValue {
         if case .bool(let value) = self { return value }
         return nil
     }
-    
+
     /// Returns the value as an Int if it is an Int, nil otherwise.
     public var intValue: Int? {
         if case .int(let value) = self { return value }
         return nil
     }
-    
+
     /// Returns the value as a Double if it is a Double or Int, nil otherwise.
     public var doubleValue: Double? {
         switch self {
@@ -85,25 +85,25 @@ extension JsonValue {
         default: return nil
         }
     }
-    
+
     /// Returns the value as a String if it is a String, nil otherwise.
     public var stringValue: String? {
         if case .string(let value) = self { return value }
         return nil
     }
-    
+
     /// Returns the value as an Array if it is an Array, nil otherwise.
     public var arrayValue: [JsonValue]? {
         if case .array(let value) = self { return value }
         return nil
     }
-    
+
     /// Returns the value as an Object if it is an Object, nil otherwise.
     public var objectValue: [String: JsonValue]? {
         if case .object(let value) = self { return value }
         return nil
     }
-    
+
     /// Returns true if the value is null.
     public var isNull: Bool {
         if case .null = self { return true }

@@ -19,6 +19,7 @@ opt_in_rules:
 disabled_rules:
   - todo # Allow TODO comments during development
   - line_length # Handled by swift-format
+  - redundant_string_enum_value # Conflicts with explicit_enum_raw_value
 
 # File length limits
 file_length:

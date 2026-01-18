@@ -7,7 +7,7 @@ import Foundation
 public protocol AcpRequest: Codable, Sendable {
     /// The associated response type for this request
     associatedtype Response: AcpResponse
-    
+
     /// The ACP method name for this request
     static var method: String { get }
 }
@@ -42,8 +42,8 @@ public protocol AcpWithSessionId {
 /// The `_meta` field is used for extensible metadata that doesn't
 /// fit into the standard message structure.
 public protocol AcpWithMeta {
-    /// Optional metadata
-    var _meta: MetaField? { get }
+    /// Optional metadata (underscore prefix required by ACP specification)
+    var _meta: MetaField? { get } // swiftlint:disable:this identifier_name
 }
 
 /// Metadata that can be attached to ACP messages.
@@ -53,10 +53,10 @@ public protocol AcpWithMeta {
 public struct MetaField: Codable, Sendable, Hashable {
     /// Progress information for long-running operations
     public var progressToken: String?
-    
+
     /// Additional arbitrary metadata
     public var additionalData: [String: JsonValue]
-    
+
     /// Creates metadata.
     ///
     /// - Parameters:
@@ -66,34 +66,34 @@ public struct MetaField: Codable, Sendable, Hashable {
         self.progressToken = progressToken
         self.additionalData = additionalData
     }
-    
+
     // MARK: - Codable
-    
+
     private enum CodingKeys: String, CodingKey {
-        case progressToken
+        case progressToken = "progressToken"
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         progressToken = try container.decodeIfPresent(String.self, forKey: .progressToken)
-        
+
         // Decode additional data from remaining keys
         let allKeys = container.allKeys
         var additionalData: [String: JsonValue] = [:]
-        
+
         for key in allKeys where key != .progressToken {
             if let value = try? decoder.singleValueContainer().decode(JsonValue.self) {
                 additionalData[key.stringValue] = value
             }
         }
-        
+
         self.additionalData = additionalData
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(progressToken, forKey: .progressToken)
-        
+
         // Encode additional data
         for (key, value) in additionalData {
             let dynamicKey = DynamicCodingKey(stringValue: key)
@@ -107,12 +107,12 @@ public struct MetaField: Codable, Sendable, Hashable {
 private struct DynamicCodingKey: CodingKey {
     var stringValue: String
     var intValue: Int?
-    
+
     init(stringValue: String) {
         self.stringValue = stringValue
         self.intValue = nil
     }
-    
+
     init?(intValue: Int) {
         self.stringValue = "\(intValue)"
         self.intValue = intValue

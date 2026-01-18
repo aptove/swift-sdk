@@ -7,12 +7,12 @@ import Foundation
 public enum RequestId: Hashable, Codable, Sendable {
     case int(Int)
     case string(String)
-    
+
     // MARK: - Codable
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if let intValue = try? container.decode(Int.self) {
             self = .int(intValue)
         } else if let stringValue = try? container.decode(String.self) {
@@ -24,10 +24,10 @@ public enum RequestId: Hashable, Codable, Sendable {
             )
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch self {
         case .int(let value):
             try container.encode(value)

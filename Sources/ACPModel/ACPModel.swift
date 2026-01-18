@@ -14,8 +14,7 @@
 public struct ACPModel {
     /// The version of the ACP schema this SDK implements
     public static let schemaVersion = "0.9.1"
-    
+
     /// The version of this SDK
     public static let sdkVersion = "1.0.0"
 }
-

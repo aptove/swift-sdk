@@ -7,16 +7,16 @@ import Foundation
 public struct JsonRpcRequest: Codable, Sendable {
     /// The JSON-RPC version (always "2.0")
     public let jsonrpc: String
-    
+
     /// The request identifier for correlation with responses
     public let id: RequestId
-    
+
     /// The method name being invoked
     public let method: String
-    
+
     /// The method parameters (optional)
     public let params: JsonValue?
-    
+
     /// Creates a JSON-RPC request.
     ///
     /// - Parameters:
@@ -37,13 +37,13 @@ public struct JsonRpcRequest: Codable, Sendable {
 public struct JsonRpcResponse: Codable, Sendable {
     /// The JSON-RPC version (always "2.0")
     public let jsonrpc: String
-    
+
     /// The request identifier this response corresponds to
     public let id: RequestId
-    
+
     /// The result of the method invocation
     public let result: JsonValue
-    
+
     /// Creates a JSON-RPC success response.
     ///
     /// - Parameters:
@@ -62,13 +62,13 @@ public struct JsonRpcResponse: Codable, Sendable {
 public struct JsonRpcError: Codable, Sendable {
     /// The JSON-RPC version (always "2.0")
     public let jsonrpc: String
-    
+
     /// The request identifier this error corresponds to
     public let id: RequestId?
-    
+
     /// The error information
     public let error: ErrorInfo
-    
+
     /// Creates a JSON-RPC error response.
     ///
     /// - Parameters:
@@ -79,18 +79,18 @@ public struct JsonRpcError: Codable, Sendable {
         self.id = id
         self.error = error
     }
-    
+
     /// Error information for JSON-RPC errors.
     public struct ErrorInfo: Codable, Sendable {
         /// The error code
         public let code: Int
-        
+
         /// A human-readable error message
         public let message: String
-        
+
         /// Additional error data (optional)
         public let data: JsonValue?
-        
+
         /// Creates error information.
         ///
         /// - Parameters:
@@ -109,24 +109,24 @@ public struct JsonRpcError: Codable, Sendable {
 public enum JsonRpcErrorCode: Int {
     /// Invalid JSON was received by the server
     case parseError = -32700
-    
+
     /// The JSON sent is not a valid Request object
     case invalidRequest = -32600
-    
+
     /// The method does not exist / is not available
     case methodNotFound = -32601
-    
+
     /// Invalid method parameter(s)
     case invalidParams = -32602
-    
+
     /// Internal JSON-RPC error
     case internalError = -32603
-    
+
     // ACP-specific error codes
-    
+
     /// Authentication is required to perform this operation
     case authRequired = -32000
-    
+
     /// The requested resource was not found
     case resourceNotFound = -32001
 }
@@ -138,13 +138,13 @@ public enum JsonRpcErrorCode: Int {
 public struct JsonRpcNotification: Codable, Sendable {
     /// The JSON-RPC version (always "2.0")
     public let jsonrpc: String
-    
+
     /// The method name being invoked
     public let method: String
-    
+
     /// The method parameters (optional)
     public let params: JsonValue?
-    
+
     /// Creates a JSON-RPC notification.
     ///
     /// - Parameters:
@@ -165,12 +165,12 @@ public enum JsonRpcMessage: Codable, Sendable {
     case response(JsonRpcResponse)
     case error(JsonRpcError)
     case notification(JsonRpcNotification)
-    
+
     // MARK: - Codable
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         // Try to decode as each type
         if let request = try? container.decode(JsonRpcRequest.self) {
             self = .request(request)
@@ -187,10 +187,10 @@ public enum JsonRpcMessage: Codable, Sendable {
             )
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch self {
         case .request(let request):
             try container.encode(request)

@@ -8,7 +8,7 @@ public struct ProtocolVersion: Hashable, Codable, Sendable {
     public let major: Int
     public let minor: Int
     public let patch: Int
-    
+
     /// Creates a protocol version.
     ///
     /// - Parameters:
@@ -20,7 +20,7 @@ public struct ProtocolVersion: Hashable, Codable, Sendable {
         self.minor = minor
         self.patch = patch
     }
-    
+
     /// Creates a protocol version from a string in the format "major.minor.patch".
     ///
     /// - Parameter string: The version string
@@ -28,31 +28,31 @@ public struct ProtocolVersion: Hashable, Codable, Sendable {
     public init?(string: String) {
         let components = string.split(separator: ".").compactMap { Int($0) }
         guard components.count == 3 else { return nil }
-        
+
         self.major = components[0]
         self.minor = components[1]
         self.patch = components[2]
     }
-    
+
     /// The current ACP protocol version supported by this SDK.
     public static let current = ProtocolVersion(major: 0, minor: 9, patch: 1)
-    
+
     // MARK: - Codable
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let versionString = try container.decode(String.self)
-        
+
         guard let version = ProtocolVersion(string: versionString) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "Invalid version format: \(versionString). Expected format: major.minor.patch"
             )
         }
-        
+
         self = version
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode("\(major).\(minor).\(patch)")
