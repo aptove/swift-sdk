@@ -3,7 +3,7 @@
 
 import PackageDescription
 
-let package = Package(
+public let package = Package(
     name: "ACP",
     platforms: [
         .iOS(.v15),
@@ -26,20 +26,20 @@ let package = Package(
         .library(
             name: "ACPHTTP",
             targets: ["ACPHTTP"]
-        ),
+        )
     ],
     dependencies: [
         // Logging framework
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         // Immutable collections
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0")
     ],
     targets: [
         // MARK: - acp-model Module
         .target(
             name: "ACPModel",
             dependencies: [
-                .product(name: "Collections", package: "swift-collections"),
+                .product(name: "Collections", package: "swift-collections")
             ],
             path: "Sources/ACPModel"
         ),
@@ -48,14 +48,14 @@ let package = Package(
             dependencies: ["ACPModel"],
             path: "Tests/ACPModelTests"
         ),
-        
+
         // MARK: - acp Core Module
         .target(
             name: "ACP",
             dependencies: [
                 "ACPModel",
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "Collections", package: "swift-collections"),
+                .product(name: "Collections", package: "swift-collections")
             ],
             path: "Sources/ACP"
         ),
@@ -64,14 +64,14 @@ let package = Package(
             dependencies: ["ACP"],
             path: "Tests/ACPTests"
         ),
-        
+
         // MARK: - acp-http Module
         .target(
             name: "ACPHTTP",
             dependencies: [
                 "ACP",
                 "ACPModel",
-                .product(name: "Logging", package: "swift-log"),
+                .product(name: "Logging", package: "swift-log")
             ],
             path: "Sources/ACPHTTP"
         ),
@@ -79,6 +79,6 @@ let package = Package(
             name: "ACPHTTPTests",
             dependencies: ["ACPHTTP"],
             path: "Tests/ACPHTTPTests"
-        ),
+        )
     ]
 )
