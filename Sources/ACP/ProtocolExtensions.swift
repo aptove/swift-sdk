@@ -106,6 +106,66 @@ extension Protocol {
         return try decodeResult(response.result, as: SetSessionConfigOptionResponse.self)
     }
 
+    // MARK: - Unstable Session Operations
+
+    /// **UNSTABLE**
+    ///
+    /// List existing sessions from the agent.
+    ///
+    /// - Parameter request: List sessions request with optional filters
+    /// - Returns: Response with session list and pagination cursor
+    /// - Throws: ProtocolError if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse {
+        let response = try await sendRequest(method: "session/list", params: request)
+        return try decodeResult(response.result, as: ListSessionsResponse.self)
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// Fork an existing session to create a new independent session.
+    ///
+    /// - Parameter request: Fork session request
+    /// - Returns: Response with new session ID and initial state
+    /// - Throws: ProtocolError if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func forkSession(request: ForkSessionRequest) async throws -> ForkSessionResponse {
+        let response = try await sendRequest(method: "session/fork", params: request)
+        return try decodeResult(response.result, as: ForkSessionResponse.self)
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// Resume an existing session without returning previous messages.
+    ///
+    /// - Parameter request: Resume session request
+    /// - Returns: Response with initial session state
+    /// - Throws: ProtocolError if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func resumeSession(request: ResumeSessionRequest) async throws -> ResumeSessionResponse {
+        let response = try await sendRequest(method: "session/resume", params: request)
+        return try decodeResult(response.result, as: ResumeSessionResponse.self)
+    }
+
+    // MARK: - Generic Request
+
+    /// Send a typed request and decode the response.
+    ///
+    /// - Parameters:
+    ///   - method: The JSON-RPC method name
+    ///   - params: Request parameters (must be Encodable)
+    ///   - responseType: The expected response type
+    /// - Returns: Decoded response
+    /// - Throws: ProtocolError if the request fails
+    public func request<P: Encodable, R: Decodable>(
+        method: String,
+        params: P,
+        responseType: R.Type
+    ) async throws -> R {
+        let response = try await sendRequest(method: method, params: params)
+        return try decodeResult(response.result, as: R.self)
+    }
+
     // MARK: - Helper Methods
 
     /// Decode a JsonValue result into a specific type.

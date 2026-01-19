@@ -173,6 +173,78 @@ public actor ClientConnection {
         return try await protocolLayer.loadSession(request: request)
     }
 
+    // MARK: - Unstable Session Operations
+
+    /// List existing sessions from the agent.
+    ///
+    /// This method is only available if the agent advertises the `session.list` capability.
+    ///
+    /// - Note: This is an **UNSTABLE** API that may change without notice.
+    ///
+    /// - Parameter request: The list sessions request with optional filters
+    /// - Returns: List of sessions with optional pagination cursor
+    /// - Throws: Error if listing fails or capability not supported
+    @available(*, message: "Unstable API - may change without notice")
+    public func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "session/list",
+            params: request,
+            responseType: ListSessionsResponse.self
+        )
+    }
+
+    /// Fork an existing session to create a new independent session.
+    ///
+    /// Creates a new session based on the context of an existing one, allowing
+    /// operations like generating summaries without affecting the original session's history.
+    ///
+    /// This method is only available if the agent advertises the `session.fork` capability.
+    ///
+    /// - Note: This is an **UNSTABLE** API that may change without notice.
+    ///
+    /// - Parameter request: The fork session request
+    /// - Returns: Response with the new session ID and initial state
+    /// - Throws: Error if forking fails or capability not supported
+    @available(*, message: "Unstable API - may change without notice")
+    public func forkSession(request: ForkSessionRequest) async throws -> ForkSessionResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "session/fork",
+            params: request,
+            responseType: ForkSessionResponse.self
+        )
+    }
+
+    /// Resume an existing session without returning previous messages.
+    ///
+    /// This method is only available if the agent advertises the `session.resume` capability.
+    /// Unlike `loadSession`, this does not replay the message history.
+    ///
+    /// - Note: This is an **UNSTABLE** API that may change without notice.
+    ///
+    /// - Parameter request: The resume session request
+    /// - Returns: Response with initial session state
+    /// - Throws: Error if resuming fails or capability not supported
+    @available(*, message: "Unstable API - may change without notice")
+    public func resumeSession(request: ResumeSessionRequest) async throws -> ResumeSessionResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "session/resume",
+            params: request,
+            responseType: ResumeSessionResponse.self
+        )
+    }
+
     // MARK: - Prompt Operations
 
     /// Send a prompt to the agent.
