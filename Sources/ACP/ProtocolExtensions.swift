@@ -70,6 +70,42 @@ extension Protocol {
         try await sendNotification(method: "$/cancelRequest", params: notification)
     }
 
+    /// Authenticate with the agent using a specific method.
+    ///
+    /// - Parameter request: Authentication request parameters
+    /// - Returns: Authentication response
+    /// - Throws: ProtocolError if the request fails
+    public func authenticate(request: AuthenticateRequest) async throws -> AuthenticateResponse {
+        let response = try await sendRequest(method: "authenticate", params: request)
+        return try decodeResult(response.result, as: AuthenticateResponse.self)
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// Set the model for a session.
+    ///
+    /// - Parameter request: Model change parameters
+    /// - Returns: Response confirming the request
+    /// - Throws: ProtocolError if the request fails
+    public func setSessionModel(request: SetSessionModelRequest) async throws -> SetSessionModelResponse {
+        let response = try await sendRequest(method: "session/set_model", params: request)
+        return try decodeResult(response.result, as: SetSessionModelResponse.self)
+    }
+
+    /// **UNSTABLE**
+    ///
+    /// Set a configuration option for a session.
+    ///
+    /// - Parameter request: Config option change parameters
+    /// - Returns: Response with updated config options
+    /// - Throws: ProtocolError if the request fails
+    public func setSessionConfigOption(
+        request: SetSessionConfigOptionRequest
+    ) async throws -> SetSessionConfigOptionResponse {
+        let response = try await sendRequest(method: "session/set_config_option", params: request)
+        return try decodeResult(response.result, as: SetSessionConfigOptionResponse.self)
+    }
+
     // MARK: - Helper Methods
 
     /// Decode a JsonValue result into a specific type.

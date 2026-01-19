@@ -1,33 +1,6 @@
 import Foundation
 
-/// Configuration option for a session (unstable API).
-///
-/// **STUB IMPLEMENTATION**
-///
-/// This is a minimal stub created during Sprint 2 to unblock compilation.
-/// Full implementation tracked in Sprint 3 proposal:
-/// `openspec/changes/complete-session-update-types/proposal.md`
-///
-/// The complete implementation should include 4 variants:
-/// - Text, Number, Boolean, Select (with flat/grouped options)
-/// - Polymorphic serialization with "type" discriminator
-/// - All optional fields and metadata support
-public struct SessionConfigOption: Codable, Sendable, Hashable {
-    /// Option ID (stub)
-    public let id: String
-
-    /// Optional metadata
-    public let _meta: MetaField? // swiftlint:disable:this identifier_name
-
-    /// Creates a session config option.
-    public init(
-        id: String,
-        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
-    ) {
-        self.id = id
-        self._meta = _meta
-    }
-}
+// Note: SessionConfigOption is now fully implemented in SessionConfigOption.swift
 
 /// Updates that can be sent during session processing.
 ///
