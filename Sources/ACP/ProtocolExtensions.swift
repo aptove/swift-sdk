@@ -10,8 +10,12 @@ extension Protocol {
     /// - Returns: The initialization response with negotiated capabilities
     /// - Throws: ProtocolError if the request fails
     public func initialize(request: InitializeRequest) async throws -> InitializeResponse {
+        print("📡 Protocol: Sending initialize request: \(request)")
         let response = try await sendRequest(method: "initialize", params: request)
-        return try decodeResult(response.result, as: InitializeResponse.self)
+        print("📡 Protocol: Received response, result: \(response.result)")
+        let decoded = try decodeResult(response.result, as: InitializeResponse.self)
+        print("📡 Protocol: Successfully decoded InitializeResponse: \(decoded)")
+        return decoded
     }
 
     /// Create a new session with the agent.
@@ -170,11 +174,18 @@ extension Protocol {
 
     /// Decode a JsonValue result into a specific type.
     private func decodeResult<T: Decodable>(_ result: JsonValue, as type: T.Type) throws -> T {
+        print("🔍 Protocol: Decoding result as \(type)")
+        print("🔍 Protocol: JsonValue: \(result)")
         let data = try JSONEncoder().encode(result)
+        print("🔍 Protocol: Encoded data: \(String(data: data, encoding: .utf8) ?? "invalid")")
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            let decoded = try JSONDecoder().decode(T.self, from: data)
+            print("🔍 Protocol: Successfully decoded as \(type)")
+            return decoded
         } catch {
+            print("🔍 Protocol: Decoding failed: \(error)")
             throw ProtocolError.decodingFailed(underlying: error)
+        }
         }
     }
 }
