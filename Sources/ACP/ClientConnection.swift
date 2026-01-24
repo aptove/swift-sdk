@@ -71,8 +71,9 @@ public actor ClientConnection {
     /// - Parameters:
     ///   - transport: Transport for communication
     ///   - client: Client delegate to receive callbacks
-    public init(transport: any Transport, client: any Client) {
-        self.protocolLayer = Protocol(transport: transport)
+    ///   - defaultTimeoutSeconds: Default timeout for requests in seconds (default: 30)
+    public init(transport: any Transport, client: any Client, defaultTimeoutSeconds: TimeInterval = 30) {
+        self.protocolLayer = Protocol(transport: transport, defaultTimeoutSeconds: defaultTimeoutSeconds)
         self.client = client
     }
 
