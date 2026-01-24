@@ -186,6 +186,5 @@ extension Protocol {
             print("🔍 Protocol: Decoding failed: \(error)")
             throw ProtocolError.decodingFailed(underlying: error)
         }
-        }
     }
 }
