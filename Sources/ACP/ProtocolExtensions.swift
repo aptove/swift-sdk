@@ -24,7 +24,7 @@ extension Protocol {
     /// - Returns: Information about the created session
     /// - Throws: ProtocolError if the request fails
     public func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
-        let response = try await sendRequest(method: "agent/session_create", params: request)
+        let response = try await sendRequest(method: "session/new", params: request)
         return try decodeResult(response.result, as: NewSessionResponse.self)
     }
 
@@ -44,7 +44,7 @@ extension Protocol {
     /// - Returns: The agent's response
     /// - Throws: ProtocolError if the request fails
     public func prompt(request: PromptRequest) async throws -> PromptResponse {
-        let response = try await sendRequest(method: "agent/prompt", params: request)
+        let response = try await sendRequest(method: "session/prompt", params: request)
         return try decodeResult(response.result, as: PromptResponse.self)
     }
 
@@ -63,7 +63,7 @@ extension Protocol {
     /// - Parameter notification: Cancel notification with session ID
     /// - Throws: ProtocolError if the notification fails to send
     public func sendCancel(notification: CancelNotification) async throws {
-        try await sendNotification(method: "acp/session/cancel", params: notification)
+        try await sendNotification(method: "session/cancel", params: notification)
     }
 
     /// Send a cancel request notification to cancel a specific request.
