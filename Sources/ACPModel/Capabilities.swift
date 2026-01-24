@@ -223,10 +223,10 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     public let promptCapabilities: PromptCapabilities
 
     /// MCP transport capabilities
-    public let mcpCapabilities: McpCapabilities
+    public let mcpCapabilities: McpCapabilities?
 
     /// Session management capabilities
-    public let sessionCapabilities: SessionCapabilities
+    public let sessionCapabilities: SessionCapabilities?
 
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
@@ -242,8 +242,8 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     public init(
         loadSession: Bool = false,
         promptCapabilities: PromptCapabilities = PromptCapabilities(),
-        mcpCapabilities: McpCapabilities = McpCapabilities(),
-        sessionCapabilities: SessionCapabilities = SessionCapabilities(),
+        mcpCapabilities: McpCapabilities? = nil,
+        sessionCapabilities: SessionCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.loadSession = loadSession
