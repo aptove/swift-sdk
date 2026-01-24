@@ -24,8 +24,12 @@ extension Protocol {
     /// - Returns: Information about the created session
     /// - Throws: ProtocolError if the request fails
     public func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        print("📡 Protocol: Creating session with request: \(request)")
         let response = try await sendRequest(method: "session/new", params: request)
-        return try decodeResult(response.result, as: NewSessionResponse.self)
+        print("📡 Protocol: Create session response: \(response)")
+        let decoded = try decodeResult(response.result, as: NewSessionResponse.self)
+        print("📡 Protocol: Decoded session response: \(decoded)")
+        return decoded
     }
 
     /// Load an existing session.
@@ -44,8 +48,12 @@ extension Protocol {
     /// - Returns: The agent's response
     /// - Throws: ProtocolError if the request fails
     public func prompt(request: PromptRequest) async throws -> PromptResponse {
+        print("📡 Protocol: Sending prompt request: \(request)")
         let response = try await sendRequest(method: "session/prompt", params: request)
-        return try decodeResult(response.result, as: PromptResponse.self)
+        print("📡 Protocol: Prompt response: \(response)")
+        let decoded = try decodeResult(response.result, as: PromptResponse.self)
+        print("📡 Protocol: Decoded prompt response: \(decoded)")
+        return decoded
     }
 
     /// Set the session mode.
