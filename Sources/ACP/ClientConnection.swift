@@ -274,7 +274,7 @@ public actor ClientConnection {
 
     /// Register notification handlers with the protocol layer.
     private func registerNotificationHandlers() async {
-        await protocolLayer.onNotification(method: "acp/session/update") { [weak self] notification in
+        await protocolLayer.onNotification(method: "session/update") { [weak self] notification in
             await self?.handleSessionUpdate(notification)
         }
     }
@@ -285,10 +285,11 @@ public actor ClientConnection {
 
         do {
             let data = try JSONEncoder().encode(params)
-            let update = try JSONDecoder().decode(SessionInfoUpdate.self, from: data)
+            let update = try JSONDecoder().decode(SessionUpdate.self, from: data)
+            print("📨 Session update received: \(update)")
             await client.onSessionUpdate(update)
         } catch {
-            // Failed to decode notification - ignore
+            print("⚠️ Failed to decode session update: \(error)")
         }
     }
 }

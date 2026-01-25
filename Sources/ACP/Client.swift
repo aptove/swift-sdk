@@ -37,7 +37,7 @@ public protocol Client: Sendable {
     /// Default implementation does nothing.
     ///
     /// - Parameter update: The session update notification
-    func onSessionUpdate(_ update: SessionInfoUpdate) async
+    func onSessionUpdate(_ update: SessionUpdate) async
 
     /// Called when the connection to the agent is established.
     ///
@@ -59,7 +59,7 @@ public extension Client {
     var info: Implementation? { nil }
 
     /// Default session update handler does nothing.
-    func onSessionUpdate(_ update: SessionInfoUpdate) async {}
+    func onSessionUpdate(_ update: SessionUpdate) async {}
 
     /// Default connected handler does nothing.
     func onConnected() async {}
