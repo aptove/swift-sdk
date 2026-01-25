@@ -103,6 +103,10 @@ public actor ClientConnection {
             print("🔌 ClientConnection: Registering notification handlers...")
             await registerNotificationHandlers()
 
+            // Register request handlers for agent->client requests
+            print("🔌 ClientConnection: Registering request handlers...")
+            await registerRequestHandlers()
+
             // Send initialize request
             print("🔌 ClientConnection: Creating initialize request with version: \(version)")
             let initRequest = InitializeRequest(
@@ -276,6 +280,32 @@ public actor ClientConnection {
     private func registerNotificationHandlers() async {
         await protocolLayer.onNotification(method: "session/update") { [weak self] notification in
             await self?.handleSessionUpdate(notification)
+        }
+    }
+
+    /// Register request handlers for agent->client requests.
+    private func registerRequestHandlers() async {
+        // Check if client supports session operations (permission requests)
+        guard let sessionOps = client as? ClientSessionOperations else {
+            return
+        }
+
+        // Register handler for permission requests
+        await protocolLayer.onRequest(
+            method: "session/request_permission",
+            requestType: RequestPermissionRequest.self
+        ) { request in
+            print("🔐 ClientConnection: Received permission request for tool: \(request.toolCall.toolCallId.value)")
+            
+            // Call the client's permission handler
+            let response = try await sessionOps.requestPermissions(
+                toolCall: request.toolCall,
+                permissions: request.options,
+                meta: nil
+            )
+            
+            print("🔐 ClientConnection: Permission response: \(response)")
+            return response
         }
     }
 

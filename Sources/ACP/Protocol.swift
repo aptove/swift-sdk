@@ -99,6 +99,9 @@ public actor Protocol {
     /// Registered notification handlers by method name
     private var notificationHandlers: [String: @Sendable (JsonRpcNotification) async -> Void] = [:]
 
+    /// Registered request handlers by method name
+    private var requestHandlers: [String: @Sendable (JsonRpcRequest) async throws -> JsonValue] = [:]
+
     /// Continuation for the error stream
     private var errorContinuation: AsyncStream<ProtocolError>.Continuation?
 
@@ -281,6 +284,18 @@ public actor Protocol {
         notificationHandlers[method] = handler
     }
 
+    /// Registers a handler for requests with a specific method name.
+    ///
+    /// - Parameters:
+    ///   - method: The method name to handle
+    ///   - handler: The async handler to invoke when a request arrives, returns the result
+    public func onRequest(
+        method: String,
+        handler: @escaping @Sendable (JsonRpcRequest) async throws -> JsonValue
+    ) {
+        requestHandlers[method] = handler
+    }
+
     // MARK: - Private Methods
 
     /// Generates a unique request ID.
@@ -295,8 +310,7 @@ public actor Protocol {
         for await message in transport.messages {
             switch message {
             case .request(let request):
-                // We don't handle incoming requests yet (future: Agent/Client layer)
-                errorContinuation?.yield(.invalidResponseId(request.id))
+                await handleRequest(request)
 
             case .response(let response):
                 await handleResponse(response)
@@ -306,6 +320,52 @@ public actor Protocol {
 
             case .notification(let notification):
                 await handleNotification(notification)
+            }
+        }
+    }
+
+    /// Handles an incoming request from the agent.
+    private func handleRequest(_ request: JsonRpcRequest) async {
+        guard let handler = requestHandlers[request.method] else {
+            // No handler registered - send method not found error
+            let errorResponse = JsonRpcError(
+                id: request.id,
+                error: JsonRpcError.ErrorInfo(
+                    code: -32601,
+                    message: "Method not found",
+                    data: nil
+                )
+            )
+            let message = JsonRpcMessage.error(errorResponse)
+            do {
+                try await transport.send(message)
+            } catch {
+                errorContinuation?.yield(.encodingFailed(underlying: error))
+            }
+            return
+        }
+
+        // Execute handler and send response
+        do {
+            let result = try await handler(request)
+            let response = JsonRpcResponse(id: request.id, result: result)
+            let message = JsonRpcMessage.response(response)
+            try await transport.send(message)
+        } catch {
+            // Handler threw error - send error response
+            let errorResponse = JsonRpcError(
+                id: request.id,
+                error: JsonRpcError.ErrorInfo(
+                    code: -32603,
+                    message: "Internal error",
+                    data: nil
+                )
+            )
+            let message = JsonRpcMessage.error(errorResponse)
+            do {
+                try await transport.send(message)
+            } catch {
+                errorContinuation?.yield(.encodingFailed(underlying: error))
             }
         }
     }

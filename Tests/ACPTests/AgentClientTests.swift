@@ -130,7 +130,7 @@ internal final class AgentClientTests: XCTestCase {
         // Default callbacks should not throw
         await client.onConnected()
         await client.onDisconnected(error: nil)
-        await client.onSessionUpdate(SessionInfoUpdate(title: "Test"))
+        await client.onSessionUpdate(.sessionInfoUpdate(SessionInfoUpdate(title: "Test")))
     }
 
     // MARK: - AgentError Tests

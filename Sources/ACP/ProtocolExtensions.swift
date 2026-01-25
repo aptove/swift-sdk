@@ -178,6 +178,42 @@ extension Protocol {
         return try decodeResult(response.result, as: R.self)
     }
 
+    // MARK: - Request Handlers
+
+    /// Register a typed handler for incoming requests from the agent.
+    ///
+    /// - Parameters:
+    ///   - method: The method name to handle
+    ///   - requestType: The type to decode request params as
+    ///   - handler: The handler that processes the request and returns a response
+    public func onRequest<P: Decodable, R: Encodable>(
+        method: String,
+        requestType: P.Type,
+        handler: @escaping @Sendable (P) async throws -> R
+    ) {
+        onRequest(method: method) { request in
+            // Decode request params
+            let params: P
+            if let paramsValue = request.params {
+                let data = try JSONEncoder().encode(paramsValue)
+                params = try JSONDecoder().decode(P.self, from: data)
+            } else {
+                throw ProtocolError.decodingFailed(underlying: NSError(
+                    domain: "ACP",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Missing required params"]
+                ))
+            }
+            
+            // Execute handler
+            let result = try await handler(params)
+            
+            // Encode result as JsonValue
+            let data = try JSONEncoder().encode(result)
+            return try JSONDecoder().decode(JsonValue.self, from: data)
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// Decode a JsonValue result into a specific type.

@@ -147,7 +147,7 @@ internal final class IntegrationTests: XCTestCase {
         // When - call default implementations
         await client.onConnected()
         await client.onDisconnected(error: nil)
-        await client.onSessionUpdate(SessionInfoUpdate())
+        await client.onSessionUpdate(.sessionInfoUpdate(SessionInfoUpdate()))
 
         // Then - should not crash (defaults do nothing)
         XCTAssertNil(client.info)
