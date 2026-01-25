@@ -285,11 +285,17 @@ public actor ClientConnection {
 
         do {
             let data = try JSONEncoder().encode(params)
+            // Debug: Print raw JSON
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📨 Raw notification params: \(jsonString)")
+            }
             let update = try JSONDecoder().decode(SessionUpdate.self, from: data)
             print("📨 Session update received: \(update)")
             await client.onSessionUpdate(update)
         } catch {
             print("⚠️ Failed to decode session update: \(error)")
+            // Debug: Print params structure
+            print("⚠️ Params were: \(params)")
         }
     }
 }
