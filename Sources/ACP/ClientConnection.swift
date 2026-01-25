@@ -285,17 +285,23 @@ public actor ClientConnection {
 
         do {
             let data = try JSONEncoder().encode(params)
-            // Debug: Print raw JSON
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("📨 Raw notification params: \(jsonString)")
+            
+            // The notification params have structure: { "sessionId": "...", "update": { ... } }
+            // We need to extract the "update" field which contains the actual SessionUpdate
+            struct NotificationParams: Codable {
+                let sessionId: String
+                let update: SessionUpdate
             }
-            let update = try JSONDecoder().decode(SessionUpdate.self, from: data)
-            print("📨 Session update received: \(update)")
-            await client.onSessionUpdate(update)
+            
+            let notificationParams = try JSONDecoder().decode(NotificationParams.self, from: data)
+            print("📨 Session update received: \(notificationParams.update)")
+            await client.onSessionUpdate(notificationParams.update)
         } catch {
             print("⚠️ Failed to decode session update: \(error)")
-            // Debug: Print params structure
-            print("⚠️ Params were: \(params)")
+            if let data = try? JSONEncoder().encode(params),
+               let jsonString = String(data: data, encoding: .utf8) {
+                print("⚠️ Raw params: \(jsonString)")
+            }
         }
     }
 }
