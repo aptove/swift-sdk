@@ -188,6 +188,10 @@ public actor AgentConnection {
             return try await handleLoadSession(request)
         case "session/prompt":
             return try await handlePrompt(request)
+        case "session/set_model":
+            return try await handleSetSessionModel(request)
+        case "session/set_config_option":
+            return try await handleSetSessionConfigOption(request)
         default:
             throw AgentConnectionError.unknownMethod(request.method)
         }
@@ -226,6 +230,20 @@ public actor AgentConnection {
     private func handlePrompt(_ request: JsonRpcRequest) async throws -> JsonValue {
         let promptRequest: PromptRequest = try decodeParams(request.params)
         let response = try await agent.handlePrompt(request: promptRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle set session model request (unstable API).
+    private func handleSetSessionModel(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let modelRequest: SetSessionModelRequest = try decodeParams(request.params)
+        let response = try await agent.setSessionModel(request: modelRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle set session config option request (unstable API).
+    private func handleSetSessionConfigOption(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let configRequest: SetSessionConfigOptionRequest = try decodeParams(request.params)
+        let response = try await agent.setSessionConfigOption(request: configRequest)
         return try encodeResult(response)
     }
 

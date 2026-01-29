@@ -65,6 +65,26 @@ public protocol Agent: Sendable {
     /// - Returns: Response indicating completion status
     /// - Throws: Error if prompt processing fails
     func handlePrompt(request: PromptRequest) async throws -> PromptResponse
+
+    // MARK: - Unstable API Methods
+
+    /// **UNSTABLE** - Set the model for a session.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The set model request
+    /// - Returns: Response confirming the request
+    /// - Throws: Error if the request fails
+    func setSessionModel(request: SetSessionModelRequest) async throws -> SetSessionModelResponse
+
+    /// **UNSTABLE** - Set a configuration option for a session.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The set config option request
+    /// - Returns: Response with updated config options
+    /// - Throws: Error if the request fails
+    func setSessionConfigOption(request: SetSessionConfigOptionRequest) async throws -> SetSessionConfigOptionResponse
 }
 
 // MARK: - Default Implementations
@@ -76,6 +96,16 @@ public extension Agent {
     /// Default load session implementation throws not implemented error.
     func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
         throw AgentError.notImplemented(method: "loadSession")
+    }
+
+    /// Default set session model implementation throws not implemented error.
+    func setSessionModel(request: SetSessionModelRequest) async throws -> SetSessionModelResponse {
+        throw AgentError.notImplemented(method: "setSessionModel")
+    }
+
+    /// Default set session config option implementation throws not implemented error.
+    func setSessionConfigOption(request: SetSessionConfigOptionRequest) async throws -> SetSessionConfigOptionResponse {
+        throw AgentError.notImplemented(method: "setSessionConfigOption")
     }
 }
 
