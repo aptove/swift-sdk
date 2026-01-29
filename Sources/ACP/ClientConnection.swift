@@ -259,6 +259,44 @@ public actor ClientConnection {
         )
     }
 
+    // MARK: - Model Selection (Unstable API)
+
+    /// **UNSTABLE** - Set the model for a session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Parameter request: The set model request
+    /// - Returns: Response confirming the request
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func setSessionModel(request: SetSessionModelRequest) async throws -> SetSessionModelResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.setSessionModel(request: request)
+    }
+
+    // MARK: - Configuration Options (Unstable API)
+
+    /// **UNSTABLE** - Set a configuration option for a session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Parameter request: The set config option request
+    /// - Returns: Response with updated configuration options
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func setSessionConfigOption(
+        request: SetSessionConfigOptionRequest
+    ) async throws -> SetSessionConfigOptionResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.setSessionConfigOption(request: request)
+    }
+
     // MARK: - Prompt Operations
 
     /// Send a prompt to the agent.

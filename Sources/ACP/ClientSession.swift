@@ -88,6 +88,68 @@ public protocol ClientSession: Sendable {
     /// - Returns: Response confirming the request
     /// - Throws: Error if modes not supported or mode change fails
     func setMode(_ modeId: SessionModeId, meta: MetaField?) async throws -> SetSessionModeResponse
+
+    // MARK: - Model Selection (Unstable API)
+
+    /// **UNSTABLE** - Whether the agent supports model selection.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    var modelsSupported: Bool { get }
+
+    /// **UNSTABLE** - Available models for this session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    /// Returns an empty array if models are not supported.
+    var availableModels: [ModelInfo] { get }
+
+    /// **UNSTABLE** - The current model ID.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Throws: Error if models not supported
+    var currentModelId: ModelId { get async throws }
+
+    /// **UNSTABLE** - Change the session model.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Parameters:
+    ///   - modelId: The model to switch to
+    ///   - meta: Optional metadata
+    /// - Returns: Response confirming the request
+    /// - Throws: Error if models not supported or model change fails
+    @available(*, message: "Unstable API - may change without notice")
+    func setModel(_ modelId: ModelId, meta: MetaField?) async throws -> SetSessionModelResponse
+
+    // MARK: - Configuration Options (Unstable API)
+
+    /// **UNSTABLE** - Whether the agent supports configuration options.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    var configOptionsSupported: Bool { get }
+
+    /// **UNSTABLE** - Available configuration options for this session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    /// Returns an empty array if config options are not supported.
+    var configOptions: [SessionConfigOption] { get async throws }
+
+    /// **UNSTABLE** - Set a configuration option value.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Parameters:
+    ///   - configId: The configuration option identifier
+    ///   - value: The value to set
+    ///   - meta: Optional metadata
+    /// - Returns: Response with updated configuration options
+    /// - Throws: Error if config options not supported or change fails
+    @available(*, message: "Unstable API - may change without notice")
+    func setConfigOption(
+        _ configId: SessionConfigId,
+        value: SessionConfigValueId,
+        meta: MetaField?
+    ) async throws -> SetSessionConfigOptionResponse
 }
 
 // MARK: - Default Implementations
@@ -101,5 +163,20 @@ extension ClientSession {
     /// Convenience method without metadata.
     public func setMode(_ modeId: SessionModeId) async throws -> SetSessionModeResponse {
         try await setMode(modeId, meta: nil)
+    }
+
+    /// **UNSTABLE** - Convenience method without metadata.
+    @available(*, message: "Unstable API - may change without notice")
+    public func setModel(_ modelId: ModelId) async throws -> SetSessionModelResponse {
+        try await setModel(modelId, meta: nil)
+    }
+
+    /// **UNSTABLE** - Convenience method without metadata.
+    @available(*, message: "Unstable API - may change without notice")
+    public func setConfigOption(
+        _ configId: SessionConfigId,
+        value: SessionConfigValueId
+    ) async throws -> SetSessionConfigOptionResponse {
+        try await setConfigOption(configId, value: value, meta: nil)
     }
 }
