@@ -1715,3 +1715,569 @@ private final class ConfigurableAgent: Agent, @unchecked Sendable {
         return await onSetConfig(request)
     }
 }
+
+// MARK: - Test Fixtures for Fork/Resume/Mode Tests
+
+/// Agent that handles fork, resume, and mode operations.
+private final class SessionManagementAgent: Agent, @unchecked Sendable {
+    var createdSessions: [SessionId] = []
+    var forkedSessions: [(from: SessionId, to: SessionId)] = []
+    var resumedSessions: [SessionId] = []
+    var modeChanges: [(sessionId: SessionId, modeId: SessionModeId)] = []
+
+    var capabilities: AgentCapabilities {
+        AgentCapabilities(
+            sessionCapabilities: SessionCapabilities(
+                fork: SessionForkCapabilities(),
+                resume: SessionResumeCapabilities()
+            )
+        )
+    }
+
+    var info: Implementation? {
+        Implementation(name: "SessionManagementAgent", version: "1.0.0")
+    }
+
+    func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        let sessionId = SessionId()
+        createdSessions.append(sessionId)
+        return NewSessionResponse(
+            sessionId: sessionId,
+            modes: SessionModeState(
+                currentModeId: SessionModeId(value: "chat"),
+                availableModes: [
+                    SessionMode(id: SessionModeId(value: "chat"), name: "Chat Mode"),
+                    SessionMode(id: SessionModeId(value: "code"), name: "Code Mode")
+                ]
+            )
+        )
+    }
+
+    func handlePrompt(request: PromptRequest) async throws -> PromptResponse {
+        PromptResponse(stopReason: .endTurn)
+    }
+
+    func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
+        LoadSessionResponse()
+    }
+
+    func forkSession(request: ForkSessionRequest) async throws -> ForkSessionResponse {
+        let newSessionId = SessionId()
+        forkedSessions.append((from: request.sessionId, to: newSessionId))
+        return ForkSessionResponse(
+            sessionId: newSessionId,
+            modes: SessionModeState(
+                currentModeId: SessionModeId(value: "chat"),
+                availableModes: [
+                    SessionMode(id: SessionModeId(value: "chat"), name: "Chat Mode"),
+                    SessionMode(id: SessionModeId(value: "code"), name: "Code Mode")
+                ]
+            )
+        )
+    }
+
+    func resumeSession(request: ResumeSessionRequest) async throws -> ResumeSessionResponse {
+        resumedSessions.append(request.sessionId)
+        return ResumeSessionResponse(
+            modes: SessionModeState(
+                currentModeId: SessionModeId(value: "chat"),
+                availableModes: [
+                    SessionMode(id: SessionModeId(value: "chat"), name: "Chat Mode"),
+                    SessionMode(id: SessionModeId(value: "code"), name: "Code Mode")
+                ]
+            )
+        )
+    }
+
+    func setSessionMode(request: SetSessionModeRequest) async throws -> SetSessionModeResponse {
+        modeChanges.append((sessionId: request.sessionId, modeId: request.modeId))
+        return SetSessionModeResponse()
+    }
+}
+
+// MARK: - Fork/Resume/Mode E2E Tests
+
+/// Tests for fork, resume, and mode change E2E scenarios.
+internal final class SessionManagementE2ETests: XCTestCase {
+
+    // MARK: - Helper Methods
+
+    private func createConnectedPair() -> (client: PipeTransport, agent: PipeTransport) {
+        return PipeTransport.createPair()
+    }
+
+    // MARK: - Fork Session Tests
+
+    func testForkSession() async throws {
+        // Given
+        let pair = createConnectedPair()
+        let agent = SessionManagementAgent()
+        let client = SimpleTestClient()
+
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // Create a session
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+        let originalSessionId = createResponse.sessionId
+
+        // When - fork the session
+        let forkResponse = try await clientConnection.forkSession(sessionId: originalSessionId)
+
+        // Then
+        XCTAssertNotEqual(forkResponse.sessionId, originalSessionId)
+        XCTAssertEqual(agent.forkedSessions.count, 1)
+        XCTAssertEqual(agent.forkedSessions[0].from, originalSessionId)
+        XCTAssertEqual(agent.forkedSessions[0].to, forkResponse.sessionId)
+        XCTAssertNotNil(forkResponse.modes)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testForkSessionWithOptions() async throws {
+        // Given
+        let pair = createConnectedPair()
+        let agent = SessionManagementAgent()
+        let client = SimpleTestClient()
+
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+        let originalSessionId = createResponse.sessionId
+
+        // When - fork with specific cwd
+        let request = ForkSessionRequest(sessionId: originalSessionId, cwd: "/tmp/forked")
+        let forkResponse = try await clientConnection.forkSession(request: request)
+
+        // Then
+        XCTAssertNotEqual(forkResponse.sessionId, originalSessionId)
+        XCTAssertEqual(agent.forkedSessions.count, 1)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    // MARK: - Resume Session Tests
+
+    func testResumeSession() async throws {
+        // Given
+        let pair = createConnectedPair()
+        let agent = SessionManagementAgent()
+        let client = SimpleTestClient()
+
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // Create a session
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+        let sessionId = createResponse.sessionId
+
+        // When - resume the session
+        let resumeResponse = try await clientConnection.resumeSession(sessionId: sessionId)
+
+        // Then
+        XCTAssertNotNil(resumeResponse.modes)
+        XCTAssertEqual(agent.resumedSessions.count, 1)
+        XCTAssertEqual(agent.resumedSessions[0], sessionId)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    // MARK: - Set Session Mode Tests
+
+    func testSetSessionMode() async throws {
+        // Given
+        let pair = createConnectedPair()
+        let agent = SessionManagementAgent()
+        let client = SimpleTestClient()
+
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+        let sessionId = createResponse.sessionId
+
+        // When - change mode
+        let codeModeId = SessionModeId(value: "code")
+        _ = try await clientConnection.setSessionMode(sessionId: sessionId, modeId: codeModeId)
+
+        // Then
+        XCTAssertEqual(agent.modeChanges.count, 1)
+        XCTAssertEqual(agent.modeChanges[0].sessionId, sessionId)
+        XCTAssertEqual(agent.modeChanges[0].modeId, codeModeId)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testMultipleModeChanges() async throws {
+        // Given
+        let pair = createConnectedPair()
+        let agent = SessionManagementAgent()
+        let client = SimpleTestClient()
+
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+        let sessionId = createResponse.sessionId
+
+        // When - change mode multiple times
+        let codeModeId = SessionModeId(value: "code")
+        let chatModeId = SessionModeId(value: "chat")
+
+        _ = try await clientConnection.setSessionMode(sessionId: sessionId, modeId: codeModeId)
+        _ = try await clientConnection.setSessionMode(sessionId: sessionId, modeId: chatModeId)
+        _ = try await clientConnection.setSessionMode(sessionId: sessionId, modeId: codeModeId)
+
+        // Then
+        XCTAssertEqual(agent.modeChanges.count, 3)
+        XCTAssertEqual(agent.modeChanges[2].modeId, codeModeId)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+}
+
+/// Simple test client for session management tests.
+private final class SimpleTestClient: Client, @unchecked Sendable {
+    var capabilities: ClientCapabilities {
+        ClientCapabilities()
+    }
+
+    var info: Implementation? {
+        Implementation(name: "SimpleTestClient", version: "1.0.0")
+    }
+}
+
+// MARK: - Agent Context E2E Tests
+
+/// Tests for agent→client operations via AgentContext.
+internal final class AgentContextE2ETests: XCTestCase {
+
+    // MARK: - Helper Methods
+
+    private func createConnectedPair() -> (client: PipeTransport, agent: PipeTransport) {
+        return PipeTransport.createPair()
+    }
+
+    // MARK: - Agent Notification Tests
+
+    func testAgentCanSendNotifications() async throws {
+        // Given - an agent that sends notifications via context
+        let notificationContent = "Hello from agent"
+        let receivedNotification = expectation(description: "Received notification")
+
+        let agent = NotifyingAgent(message: notificationContent)
+        let client = NotificationReceivingClient { notification in
+            if case .agentMessageChunk(let chunk) = notification {
+                if case .text(let text) = chunk.content {
+                    XCTAssertEqual(text.text, notificationContent)
+                    receivedNotification.fulfill()
+                }
+            }
+        }
+
+        let pair = createConnectedPair()
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+
+        // When - send a prompt (which triggers agent to send notification)
+        _ = try await clientConnection.prompt(
+            request: PromptRequest(sessionId: createResponse.sessionId, prompt: [.text(TextContent(text: "test"))])
+        )
+
+        // Then
+        await fulfillment(of: [receivedNotification], timeout: 5.0)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    // MARK: - Agent File System Tests
+
+    func testAgentCanReadFileFromClient() async throws {
+        // Given - client supports file system operations
+        let fileContent = "Test file content"
+        let filePath = "/test/file.txt"
+
+        let agent = FileReadingAgent(pathToRead: filePath)
+        let client = FileProvidingClient(files: [filePath: fileContent])
+
+        let pair = createConnectedPair()
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+
+        // When - send prompt (triggers agent to read file)
+        _ = try await clientConnection.prompt(
+            request: PromptRequest(sessionId: createResponse.sessionId, prompt: [.text(TextContent(text: "read"))])
+        )
+
+        // Then - agent received file content
+        XCTAssertEqual(agent.readContent, fileContent)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testAgentCanWriteFileToClient() async throws {
+        // Given - client supports file system operations
+        let contentToWrite = "Written by agent"
+        let filePath = "/test/output.txt"
+
+        let agent = FileWritingAgent(pathToWrite: filePath, content: contentToWrite)
+        let client = FileReceivingClient()
+
+        let pair = createConnectedPair()
+        let agentConnection = AgentConnection(transport: pair.agent, agent: agent)
+        let clientConnection = ClientConnection(transport: pair.client, client: client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        let createResponse = try await clientConnection.createSession(
+            request: NewSessionRequest(cwd: "/tmp", mcpServers: [])
+        )
+
+        // When - send prompt (triggers agent to write file)
+        _ = try await clientConnection.prompt(
+            request: PromptRequest(sessionId: createResponse.sessionId, prompt: [.text(TextContent(text: "write"))])
+        )
+
+        // Then - client received the file write
+        XCTAssertEqual(client.writtenFiles[filePath], contentToWrite)
+
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+}
+
+// MARK: - Agent Context Test Fixtures
+
+/// Agent that sends notifications to the client via context.
+private final class NotifyingAgent: Agent, @unchecked Sendable {
+    let message: String
+
+    var capabilities: AgentCapabilities {
+        AgentCapabilities()
+    }
+
+    var info: Implementation? {
+        Implementation(name: "NotifyingAgent", version: "1.0.0")
+    }
+
+    init(message: String) {
+        self.message = message
+    }
+
+    func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        NewSessionResponse(sessionId: SessionId())
+    }
+
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+        // Send a message via context
+        try await context.sendTextMessage(message)
+        return PromptResponse(stopReason: .endTurn)
+    }
+
+    func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
+        LoadSessionResponse()
+    }
+}
+
+/// Client that receives notifications.
+private final class NotificationReceivingClient: Client, @unchecked Sendable {
+    let onNotification: (SessionUpdate) -> Void
+
+    var capabilities: ClientCapabilities {
+        ClientCapabilities()
+    }
+
+    var info: Implementation? {
+        Implementation(name: "NotificationReceivingClient", version: "1.0.0")
+    }
+
+    init(onNotification: @escaping (SessionUpdate) -> Void) {
+        self.onNotification = onNotification
+    }
+
+    func onSessionUpdate(_ update: SessionUpdate) async {
+        onNotification(update)
+    }
+}
+
+/// Agent that reads a file from the client via context.
+private final class FileReadingAgent: Agent, @unchecked Sendable {
+    let pathToRead: String
+    var readContent: String = ""
+
+    var capabilities: AgentCapabilities {
+        AgentCapabilities()
+    }
+
+    var info: Implementation? {
+        Implementation(name: "FileReadingAgent", version: "1.0.0")
+    }
+
+    init(pathToRead: String) {
+        self.pathToRead = pathToRead
+    }
+
+    func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        NewSessionResponse(sessionId: SessionId())
+    }
+
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+        // Read file via context
+        let response = try await context.readTextFile(path: pathToRead)
+        readContent = response.content
+        return PromptResponse(stopReason: .endTurn)
+    }
+
+    func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
+        LoadSessionResponse()
+    }
+}
+
+/// Client that provides file content.
+private final class FileProvidingClient: Client, FileSystemOperations, @unchecked Sendable {
+    let files: [String: String]
+
+    var capabilities: ClientCapabilities {
+        ClientCapabilities(
+            fs: FileSystemCapability(
+                readTextFile: true,
+                writeTextFile: true
+            )
+        )
+    }
+
+    var info: Implementation? {
+        Implementation(name: "FileProvidingClient", version: "1.0.0")
+    }
+
+    init(files: [String: String]) {
+        self.files = files
+    }
+
+    func readTextFile(path: String, line: UInt32?, limit: UInt32?, meta: MetaField?) async throws -> ReadTextFileResponse {
+        guard let content = files[path] else {
+            throw ClientError.notImplemented("File not found: \(path)")
+        }
+        return ReadTextFileResponse(content: content)
+    }
+
+    func writeTextFile(path: String, content: String, meta: MetaField?) async throws -> WriteTextFileResponse {
+        throw ClientError.notImplemented("writeTextFile")
+    }
+}
+
+/// Agent that writes a file to the client via context.
+private final class FileWritingAgent: Agent, @unchecked Sendable {
+    let pathToWrite: String
+    let content: String
+
+    var capabilities: AgentCapabilities {
+        AgentCapabilities()
+    }
+
+    var info: Implementation? {
+        Implementation(name: "FileWritingAgent", version: "1.0.0")
+    }
+
+    init(pathToWrite: String, content: String) {
+        self.pathToWrite = pathToWrite
+        self.content = content
+    }
+
+    func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        NewSessionResponse(sessionId: SessionId())
+    }
+
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+        // Write file via context
+        _ = try await context.writeTextFile(path: pathToWrite, content: content)
+        return PromptResponse(stopReason: .endTurn)
+    }
+
+    func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
+        LoadSessionResponse()
+    }
+}
+
+/// Client that receives file writes.
+private final class FileReceivingClient: Client, FileSystemOperations, @unchecked Sendable {
+    var writtenFiles: [String: String] = [:]
+
+    var capabilities: ClientCapabilities {
+        ClientCapabilities(
+            fs: FileSystemCapability(
+                readTextFile: true,
+                writeTextFile: true
+            )
+        )
+    }
+
+    var info: Implementation? {
+        Implementation(name: "FileReceivingClient", version: "1.0.0")
+    }
+
+    func readTextFile(path: String, line: UInt32?, limit: UInt32?, meta: MetaField?) async throws -> ReadTextFileResponse {
+        throw ClientError.notImplemented("readTextFile")
+    }
+
+    func writeTextFile(path: String, content: String, meta: MetaField?) async throws -> WriteTextFileResponse {
+        writtenFiles[path] = content
+        return WriteTextFileResponse()
+    }
+}

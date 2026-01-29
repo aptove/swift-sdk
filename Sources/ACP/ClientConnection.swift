@@ -226,6 +226,18 @@ public actor ClientConnection {
         )
     }
 
+    /// Fork an existing session by session ID (convenience method).
+    ///
+    /// - Parameters:
+    ///   - sessionId: The session ID to fork from
+    ///   - cwd: The working directory for the forked session
+    /// - Returns: Response with the new session ID and initial state
+    /// - Throws: Error if forking fails or capability not supported
+    @available(*, message: "Unstable API - may change without notice")
+    public func forkSession(sessionId: SessionId, cwd: String = ".") async throws -> ForkSessionResponse {
+        return try await forkSession(request: ForkSessionRequest(sessionId: sessionId, cwd: cwd))
+    }
+
     /// Resume an existing session without returning previous messages.
     ///
     /// This method is only available if the agent advertises the `session.resume` capability.
@@ -247,6 +259,48 @@ public actor ClientConnection {
             params: request,
             responseType: ResumeSessionResponse.self
         )
+    }
+
+    /// Resume an existing session by session ID (convenience method).
+    ///
+    /// - Parameters:
+    ///   - sessionId: The session ID to resume
+    ///   - cwd: The working directory for the resumed session
+    /// - Returns: Response with initial session state
+    /// - Throws: Error if resuming fails or capability not supported
+    @available(*, message: "Unstable API - may change without notice")
+    public func resumeSession(sessionId: SessionId, cwd: String = ".") async throws -> ResumeSessionResponse {
+        return try await resumeSession(request: ResumeSessionRequest(sessionId: sessionId, cwd: cwd))
+    }
+
+    // MARK: - Session Mode (Unstable API)
+
+    /// **UNSTABLE** - Set the mode for a session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    ///
+    /// - Parameter request: The set mode request
+    /// - Returns: Response with updated mode state
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func setSessionMode(request: SetSessionModeRequest) async throws -> SetSessionModeResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.setSessionMode(request: request)
+    }
+
+    /// **UNSTABLE** - Set the mode for a session (convenience method).
+    ///
+    /// - Parameters:
+    ///   - sessionId: The session ID
+    ///   - modeId: The mode ID to set
+    /// - Returns: Response with updated mode state
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func setSessionMode(sessionId: SessionId, modeId: SessionModeId) async throws -> SetSessionModeResponse {
+        return try await setSessionMode(request: SetSessionModeRequest(sessionId: sessionId, modeId: modeId))
     }
 
     // MARK: - Model Selection (Unstable API)
@@ -313,28 +367,25 @@ public actor ClientConnection {
 
     /// Register request handlers for agent->client requests.
     private func registerRequestHandlers() async {
-        // Check if client supports session operations (permission requests)
-        guard let sessionOps = client as? ClientSessionOperations else {
-            return
-        }
+        // Register handler for permission requests if client supports session operations
+        if let sessionOps = client as? ClientSessionOperations {
+            await protocolLayer.onRequest(
+                method: "session/request_permission",
+                requestType: RequestPermissionRequest.self
+            ) { request in
+                // Call the client's permission handler
+                let response = try await sessionOps.requestPermissions(
+                    toolCall: request.toolCall,
+                    permissions: request.options,
+                    meta: nil
+                )
 
-        // Register handler for permission requests
-        await protocolLayer.onRequest(
-            method: "session/request_permission",
-            requestType: RequestPermissionRequest.self
-        ) { request in
-            // Call the client's permission handler
-            let response = try await sessionOps.requestPermissions(
-                toolCall: request.toolCall,
-                permissions: request.options,
-                meta: nil
-            )
-
-            return response
+                return response
+            }
         }
 
         // Register file system handlers if client supports them
-        if let fsOps = sessionOps as? FileSystemOperations {
+        if let fsOps = client as? FileSystemOperations {
             // Read text file handler
             await protocolLayer.onRequest(
                 method: "fs/readTextFile",

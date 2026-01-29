@@ -507,10 +507,12 @@ public actor Protocol {
                 }
             } catch {
                 // Handler threw error - send error response
+                // Check for errors that provide their own error code
+                let errorCode = self.jsonRpcErrorCode(for: error)
                 let errorResponse = JsonRpcError(
                     id: request.id,
                     error: JsonRpcError.ErrorInfo(
-                        code: -32603,
+                        code: errorCode,
                         message: error.localizedDescription,
                         data: nil
                     )
@@ -587,6 +589,25 @@ public actor Protocol {
             await handler(notification)
         }
     }
+
+    /// Get JSON-RPC error code for an error.
+    ///
+    /// Checks if the error conforms to `JsonRpcErrorConvertible` protocol
+    /// and uses its error code, otherwise returns the generic internal error code.
+    private nonisolated func jsonRpcErrorCode(for error: Error) -> Int {
+        if let convertible = error as? JsonRpcErrorConvertible {
+            return convertible.errorCode
+        }
+        return -32603 // Internal error
+    }
+}
+
+// MARK: - JsonRpcErrorConvertible Protocol
+
+/// Protocol for errors that can provide their own JSON-RPC error code.
+public protocol JsonRpcErrorConvertible: Error {
+    /// The JSON-RPC error code for this error.
+    var errorCode: Int { get }
 }
 
 // MARK: - Type Erasure

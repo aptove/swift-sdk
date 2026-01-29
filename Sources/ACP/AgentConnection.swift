@@ -7,6 +7,7 @@ import Foundation
 /// - Receives initialization requests and responds with agent capabilities
 /// - Routes incoming requests (session creation, prompts) to the Agent implementation
 /// - Sends session updates to the client
+/// - Provides agents with ability to make requests to the client during prompt handling
 ///
 /// ## Usage
 ///
@@ -32,6 +33,10 @@ public actor AgentConnection {
     /// The underlying transport.
     private let transport: Transport
 
+    /// The protocol layer for bidirectional communication.
+    /// This allows the agent to make requests to the client.
+    private var protocolLayer: Protocol?
+
     /// The agent implementation.
     private let agent: any Agent
 
@@ -44,12 +49,8 @@ public actor AgentConnection {
     /// Client capabilities received during initialization.
     public private(set) var clientCapabilities: ClientCapabilities?
 
-    /// Task handling incoming requests.
+    /// Task monitoring transport state.
     private var messageHandler: Task<Void, Never>?
-
-    /// Pending request handlers that can be cancelled.
-    /// Maps request ID to the Task handling that request.
-    private var pendingRequestTasks: [RequestId: Task<Void, Never>] = [:]
 
     // MARK: - Initialization
 
@@ -79,16 +80,80 @@ public actor AgentConnection {
         state = .connecting
 
         do {
-            try await transport.start()
+            // Create protocol layer for bidirectional communication
+            let proto = Protocol(transport: transport)
+            self.protocolLayer = proto
+
+            // Register request handlers with the protocol layer
+            await registerRequestHandlers(proto)
+
+            // Start the protocol layer (which starts transport and message processing)
+            try await proto.start()
+
             state = .connected
 
-            // Start handling messages in background
+            // Monitor for transport close
             messageHandler = Task { [weak self] in
-                await self?.handleMessages()
+                // Wait for transport state to become closed
+                let stateStream = self?.transport.state ?? AsyncStream(unfolding: { nil })
+                for await state in stateStream {
+                    if state == .closed {
+                        break
+                    }
+                }
+                await self?.handleTransportClosed()
             }
         } catch {
             state = .disconnected
             throw error
+        }
+    }
+
+    /// Handle transport close.
+    private func handleTransportClosed() {
+        state = .disconnected
+    }
+
+    /// Register request handlers with the protocol layer.
+    private func registerRequestHandlers(_ proto: Protocol) async {
+        await proto.onRequest(method: "initialize") { [weak self] request in
+            try await self?.handleInitialize(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/new") { [weak self] request in
+            try await self?.handleNewSession(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/load") { [weak self] request in
+            try await self?.handleLoadSession(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/list") { [weak self] request in
+            try await self?.handleListSessions(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/fork") { [weak self] request in
+            try await self?.handleForkSession(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/resume") { [weak self] request in
+            try await self?.handleResumeSession(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/prompt") { [weak self] request in
+            try await self?.handlePrompt(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/set_mode") { [weak self] request in
+            try await self?.handleSetSessionMode(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/set_model") { [weak self] request in
+            try await self?.handleSetSessionModel(request) ?? .null
+        }
+
+        await proto.onRequest(method: "session/set_config_option") { [weak self] request in
+            try await self?.handleSetSessionConfigOption(request) ?? .null
         }
     }
 
@@ -106,98 +171,17 @@ public actor AgentConnection {
         state = .disconnecting
         messageHandler?.cancel()
         messageHandler = nil
-        await transport.close()
+
+        // Close protocol layer (which closes transport)
+        if let proto = protocolLayer {
+            await proto.close()
+        }
+        protocolLayer = nil
+
         state = .disconnected
     }
 
-    // MARK: - Message Handling
-
-    /// Handle incoming messages from the transport.
-    private func handleMessages() async {
-        for await message in transport.messages {
-            switch message {
-            case .request(let request):
-                await handleRequest(request)
-            case .notification(let notification):
-                await handleNotification(notification)
-            case .response, .error:
-                // Agent doesn't receive responses
-                break
-            }
-        }
-
-        // Transport closed
-        state = .disconnected
-    }
-
-    /// Handle an incoming request.
-    private func handleRequest(_ request: JsonRpcRequest) async {
-        // Create a task to handle the request so it can be cancelled
-        let requestTask = Task { [weak self] in
-            guard let self = self else { return }
-
-            do {
-                let result = try await self.routeRequest(request)
-                let response = JsonRpcResponse(id: request.id, result: result)
-                try await self.transport.send(.response(response))
-            } catch is CancellationError {
-                // Request was cancelled - send cancelled error response
-                let errorResponse = JsonRpcError(
-                    id: request.id,
-                    error: JsonRpcError.ErrorInfo(
-                        code: -32800, // Request cancelled
-                        message: "Request cancelled",
-                        data: nil
-                    )
-                )
-                try? await self.transport.send(.error(errorResponse))
-            } catch {
-                let errorCode = await self.errorCode(for: error)
-                let errorResponse = JsonRpcError(
-                    id: request.id,
-                    error: JsonRpcError.ErrorInfo(
-                        code: errorCode,
-                        message: error.localizedDescription,
-                        data: nil
-                    )
-                )
-                try? await self.transport.send(.error(errorResponse))
-            }
-
-            // Remove from pending tasks when done
-            await self.removePendingRequestTask(requestId: request.id)
-        }
-
-        // Track the request task
-        pendingRequestTasks[request.id] = requestTask
-    }
-
-    /// Remove a pending request task.
-    private func removePendingRequestTask(requestId: RequestId) {
-        pendingRequestTasks.removeValue(forKey: requestId)
-    }
-
-    /// Route a request to the appropriate handler.
-    private func routeRequest(_ request: JsonRpcRequest) async throws -> JsonValue {
-        switch request.method {
-        case "initialize":
-            return try await handleInitialize(request)
-        case "session/new":
-            return try await handleNewSession(request)
-        case "session/load":
-            return try await handleLoadSession(request)
-        case "session/list":
-            return try await handleListSessions(request)
-        case "session/prompt":
-            return try await handlePrompt(request)
-        case "session/set_model":
-            return try await handleSetSessionModel(request)
-        case "session/set_config_option":
-            return try await handleSetSessionConfigOption(request)
-        default:
-            throw AgentConnectionError.unknownMethod(request.method)
-        }
-    }
+    // MARK: - Request Handlers
 
     /// Handle initialize request.
     private func handleInitialize(_ request: JsonRpcRequest) async throws -> JsonValue {
@@ -235,10 +219,43 @@ public actor AgentConnection {
         return try encodeResult(response)
     }
 
+    /// Handle fork session request.
+    private func handleForkSession(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let forkRequest: ForkSessionRequest = try decodeParams(request.params)
+        let response = try await agent.forkSession(request: forkRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle resume session request.
+    private func handleResumeSession(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let resumeRequest: ResumeSessionRequest = try decodeParams(request.params)
+        let response = try await agent.resumeSession(request: resumeRequest)
+        return try encodeResult(response)
+    }
+
     /// Handle prompt request.
     private func handlePrompt(_ request: JsonRpcRequest) async throws -> JsonValue {
         let promptRequest: PromptRequest = try decodeParams(request.params)
-        let response = try await agent.handlePrompt(request: promptRequest)
+
+        // Create the agent context for this prompt
+        guard let protocolLayer = self.protocolLayer else {
+            throw AgentConnectionError.notConnected
+        }
+
+        let context = RemoteClientOperations(
+            sessionId: promptRequest.sessionId,
+            clientCapabilities: clientCapabilities ?? ClientCapabilities(),
+            protocolLayer: protocolLayer
+        )
+
+        let response = try await agent.handlePrompt(request: promptRequest, context: context)
+        return try encodeResult(response)
+    }
+
+    /// Handle set session mode request (unstable API).
+    private func handleSetSessionMode(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let modeRequest: SetSessionModeRequest = try decodeParams(request.params)
+        let response = try await agent.setSessionMode(request: modeRequest)
         return try encodeResult(response)
     }
 
@@ -256,34 +273,6 @@ public actor AgentConnection {
         return try encodeResult(response)
     }
 
-    /// Handle an incoming notification.
-    private func handleNotification(_ notification: JsonRpcNotification) async {
-        switch notification.method {
-        case "$/cancelRequest":
-            await handleCancelRequest(notification)
-        default:
-            // Other notifications are currently ignored
-            break
-        }
-    }
-
-    /// Handle a cancel request notification.
-    private func handleCancelRequest(_ notification: JsonRpcNotification) async {
-        guard let params = notification.params else { return }
-
-        do {
-            let data = try JSONEncoder().encode(params)
-            let cancelNotification = try JSONDecoder().decode(CancelRequestNotification.self, from: data)
-
-            // Find and cancel the pending request task
-            if let task = pendingRequestTasks.removeValue(forKey: cancelNotification.requestId) {
-                task.cancel()
-            }
-        } catch {
-            // Ignore malformed cancel notifications
-        }
-    }
-
     // MARK: - Outbound
 
     /// Send a session update to the client.
@@ -295,9 +284,11 @@ public actor AgentConnection {
             throw AgentConnectionError.notConnected
         }
 
-        let params = try encodeResult(update)
-        let notification = JsonRpcNotification(method: "acp/session/update", params: params)
-        try await transport.send(.notification(notification))
+        guard let proto = protocolLayer else {
+            throw AgentConnectionError.notConnected
+        }
+
+        try await proto.sendNotification(method: "acp/session/update", params: update)
     }
 
     // MARK: - Helpers

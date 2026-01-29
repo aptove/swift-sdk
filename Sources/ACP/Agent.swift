@@ -9,10 +9,13 @@ import Foundation
 /// ## Required Methods
 /// - `capabilities`: Agent capabilities to advertise during initialization
 /// - `createSession(request:)`: Handle new session creation
-/// - `handlePrompt(request:)`: Process prompts and return responses
+/// - `handlePrompt(request:context:)`: Process prompts and return responses
 ///
 /// ## Optional Methods
 /// - `loadSession(request:)`: Load an existing session (requires loadSession capability)
+/// - `forkSession(request:)`: Fork an existing session
+/// - `resumeSession(request:)`: Resume an existing session
+/// - `setSessionMode(request:)`: Change session mode
 ///
 /// ## Example Implementation
 ///
@@ -30,8 +33,9 @@ import Foundation
 ///         return NewSessionResponse(sessionId: SessionId())
 ///     }
 ///
-///     func handlePrompt(request: PromptRequest) async throws -> PromptResponse {
-///         // Echo agent just reports completion
+///     func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+///         // Echo agent sends the prompt back as a message
+///         try await context.sendTextMessage("You said: \(request.prompt)")
 ///         return PromptResponse(stopReason: .endTurn)
 ///     }
 /// }
@@ -61,10 +65,25 @@ public protocol Agent: Sendable {
 
     /// Process a prompt from the client.
     ///
+    /// This is the legacy method without context. Override `handlePrompt(request:context:)`
+    /// to access client operations during prompt handling.
+    ///
     /// - Parameter request: The prompt request with session ID and content
     /// - Returns: Response indicating completion status
     /// - Throws: Error if prompt processing fails
     func handlePrompt(request: PromptRequest) async throws -> PromptResponse
+
+    /// Process a prompt from the client with access to client operations.
+    ///
+    /// Override this method to access file system, terminal, and permission operations
+    /// on the client during prompt handling.
+    ///
+    /// - Parameters:
+    ///   - request: The prompt request with session ID and content
+    ///   - context: Context providing access to client operations
+    /// - Returns: Response indicating completion status
+    /// - Throws: Error if prompt processing fails
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse
 
     // MARK: - Unstable API Methods
 
@@ -77,6 +96,37 @@ public protocol Agent: Sendable {
     /// - Returns: Response with paginated session list
     /// - Throws: Error if the request fails
     func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse
+
+    /// **UNSTABLE** - Fork an existing session.
+    ///
+    /// Creates a new session based on an existing session's context.
+    /// Default implementation throws not implemented error.
+    /// Requires `sessionCapabilities.fork` capability to be advertised.
+    ///
+    /// - Parameter request: The fork session request
+    /// - Returns: Response with new session info
+    /// - Throws: Error if the request fails
+    func forkSession(request: ForkSessionRequest) async throws -> ForkSessionResponse
+
+    /// **UNSTABLE** - Resume an existing session.
+    ///
+    /// Resumes a session without replaying message history.
+    /// Default implementation throws not implemented error.
+    /// Requires `sessionCapabilities.resume` capability to be advertised.
+    ///
+    /// - Parameter request: The resume session request
+    /// - Returns: Response with session state
+    /// - Throws: Error if the request fails
+    func resumeSession(request: ResumeSessionRequest) async throws -> ResumeSessionResponse
+
+    /// **UNSTABLE** - Set the mode for a session.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The set mode request
+    /// - Returns: Response confirming the mode change
+    /// - Throws: Error if the request fails
+    func setSessionMode(request: SetSessionModeRequest) async throws -> SetSessionModeResponse
 
     /// **UNSTABLE** - Set the model for a session.
     ///
@@ -108,9 +158,36 @@ public extension Agent {
         throw AgentError.notImplemented(method: "loadSession")
     }
 
+    /// Default handlePrompt without context - calls the context version with a nil-like context.
+    /// Agents should override the context version for full functionality.
+    func handlePrompt(request: PromptRequest) async throws -> PromptResponse {
+        throw AgentError.notImplemented(method: "handlePrompt")
+    }
+
+    /// Default handlePrompt with context - calls the legacy version without context.
+    /// This provides backwards compatibility.
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+        return try await handlePrompt(request: request)
+    }
+
     /// Default list sessions implementation throws not implemented error.
     func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse {
         throw AgentError.notImplemented(method: "listSessions")
+    }
+
+    /// Default fork session implementation throws not implemented error.
+    func forkSession(request: ForkSessionRequest) async throws -> ForkSessionResponse {
+        throw AgentError.notImplemented(method: "forkSession")
+    }
+
+    /// Default resume session implementation throws not implemented error.
+    func resumeSession(request: ResumeSessionRequest) async throws -> ResumeSessionResponse {
+        throw AgentError.notImplemented(method: "resumeSession")
+    }
+
+    /// Default set session mode implementation throws not implemented error.
+    func setSessionMode(request: SetSessionModeRequest) async throws -> SetSessionModeResponse {
+        throw AgentError.notImplemented(method: "setSessionMode")
     }
 
     /// Default set session model implementation throws not implemented error.
@@ -127,7 +204,7 @@ public extension Agent {
 // MARK: - Agent Errors
 
 /// Errors that agents can throw.
-public enum AgentError: Error, Sendable, LocalizedError {
+public enum AgentError: Error, Sendable, LocalizedError, JsonRpcErrorConvertible {
     /// The requested method is not implemented by this agent.
     case notImplemented(method: String)
 
