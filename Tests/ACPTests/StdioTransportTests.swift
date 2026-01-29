@@ -2,15 +2,40 @@ import XCTest
 @testable import ACP
 @testable import ACPModel
 
+/// Thread-safe collector for test values
+private actor TestCollector<T: Sendable> {
+    private var items: [T] = []
+
+    func append(_ item: T) {
+        items.append(item)
+    }
+
+    func getItems() -> [T] {
+        items
+    }
+
+    var count: Int {
+        items.count
+    }
+
+    var first: T? {
+        items.first
+    }
+
+    func contains(where predicate: (T) -> Bool) -> Bool {
+        items.contains(where: predicate)
+    }
+}
+
 public final class StdioTransportTests: XCTestCase {
     // Test that initial state is .created
     func testInitialState() async {
         let transport = createTestTransport()
-        var receivedStates: [TransportState] = []
+        let receivedStates = TestCollector<TransportState>()
 
         let task = Task {
             for await state in transport.state {
-                receivedStates.append(state)
+                await receivedStates.append(state)
                 if state == .created {
                     break
                 }
@@ -20,7 +45,8 @@ public final class StdioTransportTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         task.cancel()
 
-        XCTAssertTrue(receivedStates.contains(.created), "Initial state should be .created")
+        let states = await receivedStates.getItems()
+        XCTAssertTrue(states.contains(.created), "Initial state should be .created")
     }
 
     // Test basic message send/receive cycle
@@ -59,10 +85,10 @@ public final class StdioTransportTests: XCTestCase {
         let writePipe = Pipe()
         let transport = StdioTransport(input: readPipe.fileHandleForReading, output: writePipe.fileHandleForWriting)
 
-        var receivedMessages: [JsonRpcMessage] = []
+        let receivedMessages = TestCollector<JsonRpcMessage>()
         let messageTask = Task {
             for await message in transport.messages {
-                receivedMessages.append(message)
+                await receivedMessages.append(message)
                 break // Get first message then exit
             }
         }
@@ -86,8 +112,9 @@ public final class StdioTransportTests: XCTestCase {
         messageTask.cancel()
         await transport.close()
 
-        XCTAssertEqual(receivedMessages.count, 1, "Should receive one message")
-        if case .request(let req) = receivedMessages.first {
+        let messages = await receivedMessages.getItems()
+        XCTAssertEqual(messages.count, 1, "Should receive one message")
+        if case .request(let req) = messages.first {
             XCTAssertEqual(req.method, "test")
             XCTAssertEqual(req.id, .int(1))
         } else {
@@ -108,12 +135,12 @@ public final class StdioTransportTests: XCTestCase {
     // Test state transitions
     func testStateTransitions() async throws {
         let transport = createTestTransport()
-        var states: [TransportState] = []
+        let statesCollector = TestCollector<TransportState>()
 
         let stateTask = Task {
             for await state in transport.state {
-                states.append(state)
-                if states.count >= 3 { break }
+                await statesCollector.append(state)
+                if await statesCollector.count >= 3 { break }
             }
         }
 
@@ -130,6 +157,7 @@ public final class StdioTransportTests: XCTestCase {
         stateTask.cancel()
 
         // Should have at least: created, starting, started
+        let states = await statesCollector.getItems()
         XCTAssertTrue(states.contains(.created), "Should transition through .created")
         XCTAssertTrue(states.contains(.starting) || states.contains(.started),
                       "Should transition through .starting or .started")
@@ -141,11 +169,11 @@ public final class StdioTransportTests: XCTestCase {
         let writePipe = Pipe()
         let transport = StdioTransport(input: readPipe.fileHandleForReading, output: writePipe.fileHandleForWriting)
 
-        var receivedMessages: [JsonRpcMessage] = []
+        let receivedMessages = TestCollector<JsonRpcMessage>()
         let messageTask = Task {
             for await message in transport.messages {
-                receivedMessages.append(message)
-                if receivedMessages.count >= 1 { break }
+                await receivedMessages.append(message)
+                if await receivedMessages.count >= 1 { break }
             }
         }
 
@@ -175,8 +203,9 @@ public final class StdioTransportTests: XCTestCase {
         await transport.close()
 
         // Should only receive the valid message
-        XCTAssertEqual(receivedMessages.count, 1, "Should receive one valid message")
-        if case .request(let req) = receivedMessages.first {
+        let messages = await receivedMessages.getItems()
+        XCTAssertEqual(messages.count, 1, "Should receive one valid message")
+        if case .request(let req) = messages.first {
             XCTAssertEqual(req.method, "valid")
         } else {
             XCTFail("Message should be a request")
@@ -189,10 +218,10 @@ public final class StdioTransportTests: XCTestCase {
         let writePipe = Pipe()
         let transport = StdioTransport(input: readPipe.fileHandleForReading, output: writePipe.fileHandleForWriting)
 
-        var states: [TransportState] = []
+        let statesCollector = TestCollector<TransportState>()
         let stateTask = Task {
             for await state in transport.state {
-                states.append(state)
+                await statesCollector.append(state)
                 if state == .closed { break }
             }
         }
@@ -212,6 +241,7 @@ public final class StdioTransportTests: XCTestCase {
         stateTask.cancel()
 
         // Should eventually reach closed state
+        let states = await statesCollector.getItems()
         XCTAssertTrue(states.contains(.closing) || states.contains(.closed),
                       "Should close on EOF")
     }

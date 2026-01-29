@@ -204,10 +204,10 @@ extension Protocol {
                     userInfo: [NSLocalizedDescriptionKey: "Missing required params"]
                 ))
             }
-            
+
             // Execute handler
             let result = try await handler(params)
-            
+
             // Encode result as JsonValue
             let data = try JSONEncoder().encode(result)
             return try JSONDecoder().decode(JsonValue.self, from: data)

@@ -296,14 +296,14 @@ public actor ClientConnection {
             requestType: RequestPermissionRequest.self
         ) { request in
             print("🔐 ClientConnection: Received permission request for tool: \(request.toolCall.toolCallId.value)")
-            
+
             // Call the client's permission handler
             let response = try await sessionOps.requestPermissions(
                 toolCall: request.toolCall,
                 permissions: request.options,
                 meta: nil
             )
-            
+
             print("🔐 ClientConnection: Permission response: \(response)")
             return response
         }
@@ -315,14 +315,14 @@ public actor ClientConnection {
 
         do {
             let data = try JSONEncoder().encode(params)
-            
+
             // The notification params have structure: { "sessionId": "...", "update": { ... } }
             // We need to extract the "update" field which contains the actual SessionUpdate
             struct NotificationParams: Codable {
                 let sessionId: String
                 let update: SessionUpdate
             }
-            
+
             let notificationParams = try JSONDecoder().decode(NotificationParams.self, from: data)
             print("📨 Session update received: \(notificationParams.update)")
             await client.onSessionUpdate(notificationParams.update)

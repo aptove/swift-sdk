@@ -2,14 +2,27 @@ import XCTest
 @testable import ACP
 @testable import ACPModel
 
+/// Thread-safe counter for test tracking
+private actor TestCounter {
+    private var value = 0
+
+    func increment() {
+        value += 1
+    }
+
+    func getValue() -> Int {
+        value
+    }
+}
+
 internal final class PaginatedResponseTests: XCTestCase {
     // MARK: - PaginatedAsyncSequence Tests
 
     func testPaginatedAsyncSequenceEmptyFirstPage() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<String> { _ in
-            fetchCount += 1
+            await counter.increment()
             return (items: [], nextCursor: nil)
         }
 
@@ -18,15 +31,16 @@ internal final class PaginatedResponseTests: XCTestCase {
             items.append(item)
         }
 
+        let fetchCount = await counter.getValue()
         XCTAssertEqual(items.count, 0)
         XCTAssertEqual(fetchCount, 1)
     }
 
     func testPaginatedAsyncSequenceSinglePage() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<Int> { _ in
-            fetchCount += 1
+            await counter.increment()
             return (items: [1, 2, 3], nextCursor: nil)
         }
 
@@ -35,15 +49,16 @@ internal final class PaginatedResponseTests: XCTestCase {
             items.append(item)
         }
 
+        let fetchCount = await counter.getValue()
         XCTAssertEqual(items, [1, 2, 3])
         XCTAssertEqual(fetchCount, 1)
     }
 
     func testPaginatedAsyncSequenceMultiplePages() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<String> { cursor in
-            fetchCount += 1
+            await counter.increment()
 
             if cursor == nil {
                 // First page
@@ -62,15 +77,16 @@ internal final class PaginatedResponseTests: XCTestCase {
             items.append(item)
         }
 
+        let fetchCount = await counter.getValue()
         XCTAssertEqual(items, ["a", "b", "c", "d", "e"])
         XCTAssertEqual(fetchCount, 3)
     }
 
     func testPaginatedAsyncSequenceLazyFetching() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<Int> { cursor in
-            fetchCount += 1
+            await counter.increment()
 
             if cursor == nil {
                 return (items: [1, 2], nextCursor: Cursor(value: "page2"))
@@ -82,29 +98,33 @@ internal final class PaginatedResponseTests: XCTestCase {
         var iterator = sequence.makeAsyncIterator()
 
         // Haven't fetched anything yet
+        var fetchCount = await counter.getValue()
         XCTAssertEqual(fetchCount, 0)
 
         // First item triggers first fetch
         let first = try await iterator.next()
         XCTAssertEqual(first, 1)
+        fetchCount = await counter.getValue()
         XCTAssertEqual(fetchCount, 1)
 
         // Second item from same batch
         let second = try await iterator.next()
         XCTAssertEqual(second, 2)
+        fetchCount = await counter.getValue()
         XCTAssertEqual(fetchCount, 1)
 
         // Third item triggers second fetch
         let third = try await iterator.next()
         XCTAssertEqual(third, 3)
+        fetchCount = await counter.getValue()
         XCTAssertEqual(fetchCount, 2)
     }
 
     func testPaginatedAsyncSequenceStopsAfterNil() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<String> { _ in
-            fetchCount += 1
+            await counter.increment()
             return (items: ["only"], nextCursor: nil)
         }
 
@@ -120,6 +140,7 @@ internal final class PaginatedResponseTests: XCTestCase {
         let third = try await iterator.next()
         XCTAssertNil(third)
 
+        let fetchCount = await counter.getValue()
         XCTAssertEqual(fetchCount, 1)
     }
 
@@ -143,10 +164,10 @@ internal final class PaginatedResponseTests: XCTestCase {
     }
 
     func testPaginatedAsyncSequenceWithEmptyMiddlePage() async throws {
-        var fetchCount = 0
+        let counter = TestCounter()
 
         let sequence = PaginatedAsyncSequence<String> { cursor in
-            fetchCount += 1
+            await counter.increment()
 
             if cursor == nil {
                 return (items: ["first"], nextCursor: Cursor(value: "empty"))
