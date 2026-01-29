@@ -186,6 +186,8 @@ public actor AgentConnection {
             return try await handleNewSession(request)
         case "session/load":
             return try await handleLoadSession(request)
+        case "session/list":
+            return try await handleListSessions(request)
         case "session/prompt":
             return try await handlePrompt(request)
         case "session/set_model":
@@ -223,6 +225,13 @@ public actor AgentConnection {
     private func handleLoadSession(_ request: JsonRpcRequest) async throws -> JsonValue {
         let loadRequest: LoadSessionRequest = try decodeParams(request.params)
         let response = try await agent.loadSession(request: loadRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle list sessions request.
+    private func handleListSessions(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let listRequest: ListSessionsRequest = try decodeParams(request.params)
+        let response = try await agent.listSessions(request: listRequest)
         return try encodeResult(response)
     }
 

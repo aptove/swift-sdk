@@ -68,6 +68,16 @@ public protocol Agent: Sendable {
 
     // MARK: - Unstable API Methods
 
+    /// **UNSTABLE** - List existing sessions.
+    ///
+    /// Default implementation throws not implemented error.
+    /// Requires `sessionCapabilities.list` capability to be advertised.
+    ///
+    /// - Parameter request: The list sessions request
+    /// - Returns: Response with paginated session list
+    /// - Throws: Error if the request fails
+    func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse
+
     /// **UNSTABLE** - Set the model for a session.
     ///
     /// Default implementation throws not implemented error.
@@ -96,6 +106,11 @@ public extension Agent {
     /// Default load session implementation throws not implemented error.
     func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
         throw AgentError.notImplemented(method: "loadSession")
+    }
+
+    /// Default list sessions implementation throws not implemented error.
+    func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse {
+        throw AgentError.notImplemented(method: "listSessions")
     }
 
     /// Default set session model implementation throws not implemented error.

@@ -323,8 +323,6 @@ public actor ClientConnection {
             method: "session/request_permission",
             requestType: RequestPermissionRequest.self
         ) { request in
-            print("🔐 ClientConnection: Received permission request for tool: \(request.toolCall.toolCallId.value)")
-
             // Call the client's permission handler
             let response = try await sessionOps.requestPermissions(
                 toolCall: request.toolCall,
@@ -332,8 +330,37 @@ public actor ClientConnection {
                 meta: nil
             )
 
-            print("🔐 ClientConnection: Permission response: \(response)")
             return response
+        }
+
+        // Register file system handlers if client supports them
+        if let fsOps = sessionOps as? FileSystemOperations {
+            // Read text file handler
+            await protocolLayer.onRequest(
+                method: "fs/readTextFile",
+                requestType: ReadTextFileRequest.self
+            ) { request in
+                let response = try await fsOps.readTextFile(
+                    path: request.path,
+                    line: request.line,
+                    limit: request.limit,
+                    meta: request._meta
+                )
+                return response
+            }
+
+            // Write text file handler
+            await protocolLayer.onRequest(
+                method: "fs/writeTextFile",
+                requestType: WriteTextFileRequest.self
+            ) { request in
+                let response = try await fsOps.writeTextFile(
+                    path: request.path,
+                    content: request.content,
+                    meta: request._meta
+                )
+                return response
+            }
         }
     }
 

@@ -12,8 +12,7 @@ internal final class OperationsTests: XCTestCase {
     private final class TestFileSystemClient: FileSystemOperations, @unchecked Sendable {
         var files: [String: String] = [:]
 
-        func fsReadTextFile(
-            sessionId: SessionId,
+        func readTextFile(
             path: String,
             line: UInt32?,
             limit: UInt32?,
@@ -25,8 +24,7 @@ internal final class OperationsTests: XCTestCase {
             return ReadTextFileResponse(content: content)
         }
 
-        func fsWriteTextFile(
-            sessionId: SessionId,
+        func writeTextFile(
             path: String,
             content: String,
             meta: MetaField?
@@ -40,8 +38,7 @@ internal final class OperationsTests: XCTestCase {
         let client = TestFileSystemClient()
         client.files["/test.txt"] = "Hello, World!"
 
-        let response = try await client.fsReadTextFile(
-            sessionId: SessionId("session-1"),
+        let response = try await client.readTextFile(
             path: "/test.txt",
             line: nil,
             limit: nil,
@@ -54,8 +51,7 @@ internal final class OperationsTests: XCTestCase {
     func testFileSystemOperationsWriteFile() async throws {
         let client = TestFileSystemClient()
 
-        _ = try await client.fsWriteTextFile(
-            sessionId: SessionId("session-1"),
+        _ = try await client.writeTextFile(
             path: "/output.txt",
             content: "New content",
             meta: nil
@@ -68,8 +64,7 @@ internal final class OperationsTests: XCTestCase {
         let client = TestFileSystemClient()
 
         do {
-            _ = try await client.fsReadTextFile(
-                sessionId: SessionId("session-1"),
+            _ = try await client.readTextFile(
                 path: "/nonexistent.txt",
                 line: nil,
                 limit: nil,
@@ -91,8 +86,7 @@ internal final class OperationsTests: XCTestCase {
         let client = DefaultFileSystemClient()
 
         do {
-            _ = try await client.fsReadTextFile(
-                sessionId: SessionId("session-1"),
+            _ = try await client.readTextFile(
                 path: "/test.txt",
                 line: nil,
                 limit: nil,
@@ -101,7 +95,7 @@ internal final class OperationsTests: XCTestCase {
             XCTFail("Expected error")
         } catch let error as ClientError {
             XCTAssertTrue(error.errorDescription?.contains("notImplemented") == true ||
-                          error.errorDescription?.contains("fsReadTextFile") == true)
+                          error.errorDescription?.contains("readTextFile") == true)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -111,8 +105,7 @@ internal final class OperationsTests: XCTestCase {
         let client = DefaultFileSystemClient()
 
         do {
-            _ = try await client.fsWriteTextFile(
-                sessionId: SessionId("session-1"),
+            _ = try await client.writeTextFile(
                 path: "/test.txt",
                 content: "content",
                 meta: nil
@@ -120,7 +113,7 @@ internal final class OperationsTests: XCTestCase {
             XCTFail("Expected error")
         } catch let error as ClientError {
             XCTAssertTrue(error.errorDescription?.contains("notImplemented") == true ||
-                          error.errorDescription?.contains("fsWriteTextFile") == true)
+                          error.errorDescription?.contains("writeTextFile") == true)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

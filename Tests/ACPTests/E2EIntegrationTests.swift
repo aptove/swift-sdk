@@ -21,10 +21,20 @@ internal final class E2EIntegrationTests: XCTestCase {
         var promptCancellationHandler: ((CancellationError) -> Void)?
 
         var capabilities: AgentCapabilities {
-            AgentCapabilities(
-                loadSession: loadSessionEnabled,
-                promptCapabilities: PromptCapabilities()
-            )
+            if listSessionsEnabled {
+                return AgentCapabilities(
+                    loadSession: loadSessionEnabled,
+                    promptCapabilities: PromptCapabilities(),
+                    sessionCapabilities: SessionCapabilities(
+                        list: SessionListCapabilities()
+                    )
+                )
+            } else {
+                return AgentCapabilities(
+                    loadSession: loadSessionEnabled,
+                    promptCapabilities: PromptCapabilities()
+                )
+            }
         }
 
         var info: Implementation? {
@@ -38,6 +48,9 @@ internal final class E2EIntegrationTests: XCTestCase {
 
         // List of sessions to return for listSessions tests
         var sessionsToReturn: [SessionInfo] = []
+        
+        // Track list sessions requests
+        var listSessionsRequests: [ListSessionsRequest] = []
 
         func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
             if let error = throwOnCreateSession {
@@ -91,6 +104,40 @@ internal final class E2EIntegrationTests: XCTestCase {
                     ]
                 )
             )
+        }
+
+        func listSessions(request: ListSessionsRequest) async throws -> ListSessionsResponse {
+            guard listSessionsEnabled else {
+                throw AgentError.notImplemented(method: "listSessions")
+            }
+            listSessionsRequests.append(request)
+            
+            // Filter by cwd if provided
+            var sessions = sessionsToReturn
+            if let cwd = request.cwd {
+                sessions = sessions.filter { $0.cwd.contains(cwd) }
+            }
+            
+            // Handle pagination
+            let pageSize = 10
+            let startIndex: Int
+            if let cursor = request.cursor, let index = Int(cursor.value) {
+                startIndex = index
+            } else {
+                startIndex = 0
+            }
+            
+            let endIndex = min(startIndex + pageSize, sessions.count)
+            let pageSessions = Array(sessions[startIndex..<endIndex])
+            
+            let nextCursor: Cursor?
+            if endIndex < sessions.count {
+                nextCursor = Cursor(value: String(endIndex))
+            } else {
+                nextCursor = nil
+            }
+            
+            return ListSessionsResponse(sessions: pageSessions, nextCursor: nextCursor)
         }
     }
 
@@ -1332,6 +1379,178 @@ internal final class E2EIntegrationTests: XCTestCase {
         XCTAssertNotNil(receivedConfigRequest)
         XCTAssertEqual(receivedConfigRequest?.configId.value, "format")
         XCTAssertEqual(receivedConfigRequest?.value.value, "markdown")
+
+        // Cleanup
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    // MARK: - List Sessions Tests
+
+    func testListSessionsReturnsPaginatedResults() async throws {
+        // Given - agent with listSessions capability and 25 sessions
+        let pair = createConnectedPair()
+        pair.agent.listSessionsEnabled = true
+        pair.agent.sessionsToReturn = (1...25).map { i in
+            SessionInfo(
+                sessionId: SessionId(value: "session-\(i)"),
+                cwd: "/test/path/\(i)",
+                title: "Session \(i)"
+            )
+        }
+
+        let agentConnection = AgentConnection(transport: pair.agentTransport, agent: pair.agent)
+        let clientConnection = ClientConnection(transport: pair.clientTransport, client: pair.client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // When - list sessions
+        let response1 = try await clientConnection.listSessions(request: ListSessionsRequest())
+
+        // Then - first page with 10 sessions
+        XCTAssertEqual(response1.sessions.count, 10)
+        XCTAssertEqual(response1.sessions.first?.sessionId.value, "session-1")
+        XCTAssertEqual(response1.sessions.last?.sessionId.value, "session-10")
+        XCTAssertNotNil(response1.nextCursor)
+
+        // When - fetch second page
+        let response2 = try await clientConnection.listSessions(
+            request: ListSessionsRequest(cursor: response1.nextCursor)
+        )
+
+        // Then - second page
+        XCTAssertEqual(response2.sessions.count, 10)
+        XCTAssertEqual(response2.sessions.first?.sessionId.value, "session-11")
+        XCTAssertNotNil(response2.nextCursor)
+
+        // When - fetch third page (last)
+        let response3 = try await clientConnection.listSessions(
+            request: ListSessionsRequest(cursor: response2.nextCursor)
+        )
+
+        // Then - last page with remaining sessions
+        XCTAssertEqual(response3.sessions.count, 5)
+        XCTAssertEqual(response3.sessions.first?.sessionId.value, "session-21")
+        XCTAssertEqual(response3.sessions.last?.sessionId.value, "session-25")
+        XCTAssertNil(response3.nextCursor)
+
+        // Cleanup
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testListSessionsWithCwdFilter() async throws {
+        // Given - agent with sessions in different directories
+        let pair = createConnectedPair()
+        pair.agent.listSessionsEnabled = true
+        pair.agent.sessionsToReturn = [
+            SessionInfo(sessionId: SessionId(value: "session-1"), cwd: "/project/a"),
+            SessionInfo(sessionId: SessionId(value: "session-2"), cwd: "/project/b"),
+            SessionInfo(sessionId: SessionId(value: "session-3"), cwd: "/project/a/subdir"),
+            SessionInfo(sessionId: SessionId(value: "session-4"), cwd: "/other/path")
+        ]
+
+        let agentConnection = AgentConnection(transport: pair.agentTransport, agent: pair.agent)
+        let clientConnection = ClientConnection(transport: pair.clientTransport, client: pair.client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // When - list sessions with cwd filter
+        let response = try await clientConnection.listSessions(
+            request: ListSessionsRequest(cwd: "/project/a")
+        )
+
+        // Then - only sessions matching the filter
+        XCTAssertEqual(response.sessions.count, 2)
+        XCTAssertTrue(response.sessions.allSatisfy { $0.cwd.contains("/project/a") })
+
+        // Cleanup
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testListSessionsEmptyResult() async throws {
+        // Given - agent with no sessions
+        let pair = createConnectedPair()
+        pair.agent.listSessionsEnabled = true
+        pair.agent.sessionsToReturn = []
+
+        let agentConnection = AgentConnection(transport: pair.agentTransport, agent: pair.agent)
+        let clientConnection = ClientConnection(transport: pair.clientTransport, client: pair.client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // When - list sessions
+        let response = try await clientConnection.listSessions(request: ListSessionsRequest())
+
+        // Then - empty result
+        XCTAssertTrue(response.sessions.isEmpty)
+        XCTAssertNil(response.nextCursor)
+
+        // Cleanup
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testListSessionsNotSupported() async throws {
+        // Given - agent without listSessions capability
+        let pair = createConnectedPair()
+        pair.agent.listSessionsEnabled = false
+
+        let agentConnection = AgentConnection(transport: pair.agentTransport, agent: pair.agent)
+        let clientConnection = ClientConnection(transport: pair.clientTransport, client: pair.client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // When - try to list sessions
+        do {
+            _ = try await clientConnection.listSessions(request: ListSessionsRequest())
+            XCTFail("Expected error")
+        } catch let error as ProtocolError {
+            // Then - method not found error
+            if case .jsonRpcError(let code, _, _) = error {
+                XCTAssertEqual(code, -32601) // Method not found
+            } else {
+                XCTFail("Expected jsonRpcError")
+            }
+        }
+
+        // Cleanup
+        await clientConnection.disconnect()
+        await agentConnection.stop()
+    }
+
+    func testListSessionsTracksRequests() async throws {
+        // Given - agent with listSessions capability
+        let pair = createConnectedPair()
+        pair.agent.listSessionsEnabled = true
+        pair.agent.sessionsToReturn = [
+            SessionInfo(sessionId: SessionId(value: "session-1"), cwd: "/test")
+        ]
+
+        let agentConnection = AgentConnection(transport: pair.agentTransport, agent: pair.agent)
+        let clientConnection = ClientConnection(transport: pair.clientTransport, client: pair.client)
+
+        try await agentConnection.start()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await clientConnection.connect()
+
+        // When - make multiple list requests
+        _ = try await clientConnection.listSessions(request: ListSessionsRequest(cwd: "/project/a"))
+        _ = try await clientConnection.listSessions(request: ListSessionsRequest(cwd: "/project/b"))
+
+        // Then - all requests are tracked
+        XCTAssertEqual(pair.agent.listSessionsRequests.count, 2)
+        XCTAssertEqual(pair.agent.listSessionsRequests[0].cwd, "/project/a")
+        XCTAssertEqual(pair.agent.listSessionsRequests[1].cwd, "/project/b")
 
         // Cleanup
         await clientConnection.disconnect()

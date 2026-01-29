@@ -9,17 +9,16 @@ import Foundation
 /// ## Capabilities
 ///
 /// File operations are gated by client capabilities:
-/// - `fs.readTextFile`: Enables `fsReadTextFile` method
-/// - `fs.writeTextFile`: Enables `fsWriteTextFile` method
+/// - `fs.readTextFile`: Enables `readTextFile` method
+/// - `fs.writeTextFile`: Enables `writeTextFile` method
 ///
 /// ## Usage
 ///
 /// Implement this protocol in your client to provide file access:
 ///
 /// ```swift
-/// class MyClient: Client, FileSystemOperations {
-///     func fsReadTextFile(
-///         sessionId: SessionId,
+/// class MyClient: Client, ClientSessionOperations {
+///     func readTextFile(
 ///         path: String,
 ///         line: UInt32?,
 ///         limit: UInt32?,
@@ -29,8 +28,7 @@ import Foundation
 ///         return ReadTextFileResponse(content: content)
 ///     }
 ///
-///     func fsWriteTextFile(
-///         sessionId: SessionId,
+///     func writeTextFile(
 ///         path: String,
 ///         content: String,
 ///         meta: MetaField?
@@ -48,15 +46,13 @@ public protocol FileSystemOperations: Sendable {
     /// If `line` and `limit` are provided, only a portion of the file is returned.
     ///
     /// - Parameters:
-    ///   - sessionId: The session making the request
     ///   - path: The file path to read
     ///   - line: Starting line number (1-indexed, optional)
     ///   - limit: Maximum number of lines to read (optional)
     ///   - meta: Optional metadata
     /// - Returns: The file content
     /// - Throws: Error if file cannot be read
-    func fsReadTextFile(
-        sessionId: SessionId,
+    func readTextFile(
         path: String,
         line: UInt32?,
         limit: UInt32?,
@@ -69,14 +65,12 @@ public protocol FileSystemOperations: Sendable {
     /// the file if it doesn't exist or overwriting if it does.
     ///
     /// - Parameters:
-    ///   - sessionId: The session making the request
     ///   - path: The file path to write
     ///   - content: The content to write
     ///   - meta: Optional metadata
     /// - Returns: Confirmation of the write
     /// - Throws: Error if file cannot be written
-    func fsWriteTextFile(
-        sessionId: SessionId,
+    func writeTextFile(
         path: String,
         content: String,
         meta: MetaField?
@@ -88,23 +82,21 @@ public protocol FileSystemOperations: Sendable {
 extension FileSystemOperations {
 
     /// Default implementation that throws not implemented error.
-    public func fsReadTextFile(
-        sessionId: SessionId,
+    public func readTextFile(
         path: String,
         line: UInt32?,
         limit: UInt32?,
         meta: MetaField?
     ) async throws -> ReadTextFileResponse {
-        throw ClientError.notImplemented("fsReadTextFile - Client must advertise fs.readTextFile capability")
+        throw ClientError.notImplemented("readTextFile - Client must advertise fs.readTextFile capability")
     }
 
     /// Default implementation that throws not implemented error.
-    public func fsWriteTextFile(
-        sessionId: SessionId,
+    public func writeTextFile(
         path: String,
         content: String,
         meta: MetaField?
     ) async throws -> WriteTextFileResponse {
-        throw ClientError.notImplemented("fsWriteTextFile - Client must advertise fs.writeTextFile capability")
+        throw ClientError.notImplemented("writeTextFile - Client must advertise fs.writeTextFile capability")
     }
 }
