@@ -10,12 +10,8 @@ extension Protocol {
     /// - Returns: The initialization response with negotiated capabilities
     /// - Throws: ProtocolError if the request fails
     public func initialize(request: InitializeRequest) async throws -> InitializeResponse {
-        print("📡 Protocol: Sending initialize request: \(request)")
         let response = try await sendRequest(method: "initialize", params: request)
-        print("📡 Protocol: Received response, result: \(response.result)")
-        let decoded = try decodeResult(response.result, as: InitializeResponse.self)
-        print("📡 Protocol: Successfully decoded InitializeResponse: \(decoded)")
-        return decoded
+        return try decodeResult(response.result, as: InitializeResponse.self)
     }
 
     /// Create a new session with the agent.
@@ -24,12 +20,8 @@ extension Protocol {
     /// - Returns: Information about the created session
     /// - Throws: ProtocolError if the request fails
     public func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
-        print("📡 Protocol: Creating session with request: \(request)")
         let response = try await sendRequest(method: "session/new", params: request)
-        print("📡 Protocol: Create session response: \(response)")
-        let decoded = try decodeResult(response.result, as: NewSessionResponse.self)
-        print("📡 Protocol: Decoded session response: \(decoded)")
-        return decoded
+        return try decodeResult(response.result, as: NewSessionResponse.self)
     }
 
     /// Load an existing session.
@@ -38,7 +30,7 @@ extension Protocol {
     /// - Returns: Information about the loaded session
     /// - Throws: ProtocolError if the request fails
     public func loadSession(request: LoadSessionRequest) async throws -> LoadSessionResponse {
-        let response = try await sendRequest(method: "agent/session_load", params: request)
+        let response = try await sendRequest(method: "session/load", params: request)
         return try decodeResult(response.result, as: LoadSessionResponse.self)
     }
 
@@ -48,12 +40,8 @@ extension Protocol {
     /// - Returns: The agent's response
     /// - Throws: ProtocolError if the request fails
     public func prompt(request: PromptRequest) async throws -> PromptResponse {
-        print("📡 Protocol: Sending prompt request: \(request)")
         let response = try await sendRequest(method: "session/prompt", params: request)
-        print("📡 Protocol: Prompt response: \(response)")
-        let decoded = try decodeResult(response.result, as: PromptResponse.self)
-        print("📡 Protocol: Decoded prompt response: \(decoded)")
-        return decoded
+        return try decodeResult(response.result, as: PromptResponse.self)
     }
 
     /// Set the session mode.
@@ -218,16 +206,10 @@ extension Protocol {
 
     /// Decode a JsonValue result into a specific type.
     private func decodeResult<T: Decodable>(_ result: JsonValue, as type: T.Type) throws -> T {
-        print("🔍 Protocol: Decoding result as \(type)")
-        print("🔍 Protocol: JsonValue: \(result)")
         let data = try JSONEncoder().encode(result)
-        print("🔍 Protocol: Encoded data: \(String(data: data, encoding: .utf8) ?? "invalid")")
         do {
-            let decoded = try JSONDecoder().decode(T.self, from: data)
-            print("🔍 Protocol: Successfully decoded as \(type)")
-            return decoded
+            return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            print("🔍 Protocol: Decoding failed: \(error)")
             throw ProtocolError.decodingFailed(underlying: error)
         }
     }

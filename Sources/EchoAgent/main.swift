@@ -10,10 +10,10 @@
 // Example interaction:
 //   → {"jsonrpc":"2.0","id":1,"method":"initialize","params":{...}}
 //   ← {"jsonrpc":"2.0","id":1,"result":{...}}
-//   → {"jsonrpc":"2.0","id":2,"method":"acp/session/new","params":{...}}
+//   → {"jsonrpc":"2.0","id":2,"method":"session/new","params":{...}}
 //   ← {"jsonrpc":"2.0","id":2,"result":{"sessionId":"..."}}
-//   → {"jsonrpc":"2.0","id":3,"method":"acp/prompt","params":{...}}
-//   ← {"jsonrpc":"2.0","method":"acp/session/update","params":{...}}
+//   → {"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{...}}
+//   ← {"jsonrpc":"2.0","method":"session/update","params":{...}}
 //   ← {"jsonrpc":"2.0","id":3,"result":{"stopReason":"end_turn"}}
 
 import ACP

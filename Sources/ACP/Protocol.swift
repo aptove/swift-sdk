@@ -93,8 +93,11 @@ public actor Protocol {
     /// Request ID counter (auto-incrementing)
     private var nextRequestId: Int = 1
 
-    /// Pending requests awaiting responses
-    private var pendingRequests: [RequestId: CheckedContinuation<JsonRpcResponse, Error>] = [:]
+    /// Pending outgoing requests awaiting responses (requests we sent)
+    private var pendingOutgoingRequests: [RequestId: CheckedContinuation<JsonRpcResponse, Error>] = [:]
+
+    /// Pending incoming requests being processed (requests we received)
+    private var pendingIncomingRequests: [RequestId: Task<Void, Never>] = [:]
 
     /// Registered notification handlers by method name
     private var notificationHandlers: [String: @Sendable (JsonRpcNotification) async -> Void] = [:]
@@ -111,6 +114,9 @@ public actor Protocol {
     /// Default timeout in seconds
     private let defaultTimeoutSeconds: TimeInterval
 
+    /// Timeout for graceful cancellation in seconds
+    private let gracefulCancellationTimeoutSeconds: TimeInterval
+
     // MARK: - Public Properties
 
     /// Stream of protocol errors (non-fatal errors that don't stop the protocol)
@@ -123,9 +129,15 @@ public actor Protocol {
     /// - Parameters:
     ///   - transport: The transport to use for message exchange
     ///   - defaultTimeoutSeconds: Default timeout for requests in seconds (default: 30)
-    public init(transport: Transport, defaultTimeoutSeconds: TimeInterval = 30) {
+    ///   - gracefulCancellationTimeoutSeconds: Timeout for waiting for graceful cancellation (default: 1)
+    public init(
+        transport: Transport,
+        defaultTimeoutSeconds: TimeInterval = 30,
+        gracefulCancellationTimeoutSeconds: TimeInterval = 1
+    ) {
         self.transport = transport
         self.defaultTimeoutSeconds = defaultTimeoutSeconds
+        self.gracefulCancellationTimeoutSeconds = gracefulCancellationTimeoutSeconds
 
         // Create error stream
         var continuation: AsyncStream<ProtocolError>.Continuation?
@@ -140,9 +152,13 @@ public actor Protocol {
     /// This method:
     /// 1. Starts the underlying transport
     /// 2. Begins processing incoming messages
+    /// 3. Registers the cancel request handler
     ///
     /// - Throws: ProtocolError if the transport fails to start
     public func start() async throws {
+        // Register built-in cancel request handler
+        registerCancelRequestHandler()
+
         // Start transport
         try await transport.start()
 
@@ -163,11 +179,17 @@ public actor Protocol {
         messageTask?.cancel()
         messageTask = nil
 
-        // Fail all pending requests
-        for (_, continuation) in pendingRequests {
+        // Fail all pending outgoing requests
+        for (_, continuation) in pendingOutgoingRequests {
             continuation.resume(throwing: ProtocolError.transportClosed)
         }
-        pendingRequests.removeAll()
+        pendingOutgoingRequests.removeAll()
+
+        // Cancel all pending incoming requests
+        for (_, task) in pendingIncomingRequests {
+            task.cancel()
+        }
+        pendingIncomingRequests.removeAll()
 
         // Close transport
         await transport.close()
@@ -177,9 +199,67 @@ public actor Protocol {
         errorContinuation = nil
     }
 
+    // MARK: - Cancellation Support
+
+    /// Registers the built-in handler for cancel request notifications.
+    private func registerCancelRequestHandler() {
+        notificationHandlers["$/cancelRequest"] = { [weak self] notification in
+            await self?.handleCancelRequest(notification)
+        }
+    }
+
+    /// Handles an incoming cancel request notification.
+    private func handleCancelRequest(_ notification: JsonRpcNotification) async {
+        // Decode the cancel notification
+        guard let params = notification.params else { return }
+
+        do {
+            let data = try JSONEncoder().encode(params)
+            let cancelNotification = try JSONDecoder().decode(CancelRequestNotification.self, from: data)
+
+            // Find and cancel the pending incoming request
+            if let task = pendingIncomingRequests.removeValue(forKey: cancelNotification.requestId) {
+                task.cancel()
+            }
+        } catch {
+            // Log but don't fail - malformed cancel notifications should be ignored
+            errorContinuation?.yield(.decodingFailed(underlying: error))
+        }
+    }
+
+    /// Sends a cancel request notification to the other side.
+    private func sendCancelNotification(requestId: RequestId, message: String?) async {
+        let cancelNotification = CancelRequestNotification(requestId: requestId, message: message)
+        do {
+            try await sendNotification(method: "$/cancelRequest", params: cancelNotification)
+        } catch {
+            // Best effort - don't fail if cancel notification can't be sent
+            errorContinuation?.yield(.encodingFailed(underlying: error))
+        }
+    }
+
+    /// Cancels all pending incoming requests (requests we are handling).
+    public func cancelPendingIncomingRequests() async {
+        for (_, task) in pendingIncomingRequests {
+            task.cancel()
+        }
+        pendingIncomingRequests.removeAll()
+    }
+
+    /// Cancels all pending outgoing requests (requests we are waiting for).
+    public func cancelPendingOutgoingRequests(error: Error = CancellationError()) async {
+        for (_, continuation) in pendingOutgoingRequests {
+            continuation.resume(throwing: error)
+        }
+        pendingOutgoingRequests.removeAll()
+    }
+
     // MARK: - Request Management
 
     /// Sends a request and awaits the response.
+    ///
+    /// If the calling task is cancelled, this method sends a `$/cancelRequest` notification
+    /// to the other side and waits briefly for a graceful cancellation response.
     ///
     /// - Parameters:
     ///   - method: The JSON-RPC method name
@@ -187,7 +267,7 @@ public actor Protocol {
     ///   - timeoutSeconds: Optional timeout override in seconds (uses default if nil)
     ///
     /// - Returns: The JSON-RPC response
-    /// - Throws: ProtocolError if the request fails or times out
+    /// - Throws: ProtocolError if the request fails, times out, or is cancelled
     public func sendRequest(
         method: String,
         params: (any Encodable)? = nil,
@@ -209,33 +289,87 @@ public actor Protocol {
             paramsValue = nil
         }
 
-        // Create request
+        // Create request message
         let request = JsonRpcRequest(id: requestId, method: method, params: paramsValue)
         let message = JsonRpcMessage.request(request)
 
-        // Send via transport
-        try await transport.send(message)
-
-        // Wait for response with timeout
+        // Wait for response with timeout and cancellation handling
         let effectiveTimeout = timeoutSeconds ?? defaultTimeoutSeconds
-        return try await withTimeout(seconds: effectiveTimeout) { [weak self] in
-            guard let self = self else {
-                throw ProtocolError.transportClosed
-            }
-            return try await withCheckedThrowingContinuation { continuation in
-                Task {
-                    await self.storeContinuation(requestId: requestId, continuation: continuation)
+
+        // Use withTaskCancellationHandler to properly handle cancellation
+        // We need to capture `self` weakly since the closure runs synchronously
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<JsonRpcResponse, Error>) in
+                // Store continuation FIRST (before sending request)
+                self.pendingOutgoingRequests[requestId] = continuation
+
+                // Start a task to send the request and handle timeout
+                Task { [weak self] in
+                    guard let self = self else {
+                        return
+                    }
+
+                    do {
+                        // Send the request
+                        try await self.transport.send(message)
+
+                        // Start timeout monitoring with cancellation checks
+                        // Use smaller sleep intervals to respond to cancellation faster
+                        let startTime = Date()
+                        while Date().timeIntervalSince(startTime) < effectiveTimeout {
+                            // Check for cancellation
+                            if Task.isCancelled {
+                                return
+                            }
+                            try await Task.sleep(nanoseconds: 50_000_000) // 50ms intervals
+                        }
+
+                        // If we get here, timeout occurred (request still pending)
+                        await self.handleTimeout(requestId: requestId, method: method)
+                    } catch is CancellationError {
+                        // Task was cancelled - this is expected
+                    } catch {
+                        // Transport error
+                        await self.handleTransportError(requestId: requestId, error: error)
+                    }
                 }
+            }
+        } onCancel: { [weak self] in
+            // This runs synchronously when the outer task is cancelled
+            // We need to dispatch to an actor-isolated context via a detached task
+            // Using unstructured concurrency since onCancel is synchronous
+            let capturedSelf = self
+            let capturedRequestId = requestId
+            Task.detached {
+                guard let strongSelf = capturedSelf else { return }
+                await strongSelf.handleRequestCancellation(requestId: capturedRequestId)
             }
         }
     }
 
-    /// Stores a continuation for a pending request.
-    private func storeContinuation(
-        requestId: RequestId,
-        continuation: CheckedContinuation<JsonRpcResponse, Error>
-    ) {
-        pendingRequests[requestId] = continuation
+    /// Handle cancellation of an outgoing request.
+    private func handleRequestCancellation(requestId: RequestId) async {
+        // Send cancel notification to the other side
+        await sendCancelNotification(requestId: requestId, message: "Request cancelled by client")
+
+        // Resume continuation with cancellation error if still pending
+        if let continuation = pendingOutgoingRequests.removeValue(forKey: requestId) {
+            continuation.resume(throwing: CancellationError())
+        }
+    }
+
+    /// Handle request timeout.
+    private func handleTimeout(requestId: RequestId, method: String) {
+        if let continuation = pendingOutgoingRequests.removeValue(forKey: requestId) {
+            continuation.resume(throwing: ProtocolError.timeout(method: method, requestId: requestId))
+        }
+    }
+
+    /// Handle transport error during request.
+    private func handleTransportError(requestId: RequestId, error: Error) {
+        if let continuation = pendingOutgoingRequests.removeValue(forKey: requestId) {
+            continuation.resume(throwing: error)
+        }
     }
 
     /// Sends a notification (no response expected).
@@ -332,7 +466,7 @@ public actor Protocol {
                 id: request.id,
                 error: JsonRpcError.ErrorInfo(
                     code: -32601,
-                    message: "Method not found",
+                    message: "Method not found: \(request.method)",
                     data: nil
                 )
             )
@@ -345,34 +479,66 @@ public actor Protocol {
             return
         }
 
-        // Execute handler and send response
-        do {
-            let result = try await handler(request)
-            let response = JsonRpcResponse(id: request.id, result: result)
-            let message = JsonRpcMessage.response(response)
-            try await transport.send(message)
-        } catch {
-            // Handler threw error - send error response
-            let errorResponse = JsonRpcError(
-                id: request.id,
-                error: JsonRpcError.ErrorInfo(
-                    code: -32603,
-                    message: "Internal error",
-                    data: nil
-                )
-            )
-            let message = JsonRpcMessage.error(errorResponse)
+        // Create a task for handling this request so it can be cancelled
+        let requestTask = Task { [weak self] in
+            guard let self = self else { return }
+
             do {
-                try await transport.send(message)
+                // Execute handler
+                let result = try await handler(request)
+                let response = JsonRpcResponse(id: request.id, result: result)
+                let message = JsonRpcMessage.response(response)
+                try await self.transport.send(message)
+            } catch is CancellationError {
+                // Request was cancelled - send cancelled error response
+                let errorResponse = JsonRpcError(
+                    id: request.id,
+                    error: JsonRpcError.ErrorInfo(
+                        code: -32800, // Request cancelled
+                        message: "Request cancelled",
+                        data: nil
+                    )
+                )
+                let message = JsonRpcMessage.error(errorResponse)
+                do {
+                    try await self.transport.send(message)
+                } catch {
+                    await self.errorContinuation?.yield(.encodingFailed(underlying: error))
+                }
             } catch {
-                errorContinuation?.yield(.encodingFailed(underlying: error))
+                // Handler threw error - send error response
+                let errorResponse = JsonRpcError(
+                    id: request.id,
+                    error: JsonRpcError.ErrorInfo(
+                        code: -32603,
+                        message: error.localizedDescription,
+                        data: nil
+                    )
+                )
+                let message = JsonRpcMessage.error(errorResponse)
+                do {
+                    try await self.transport.send(message)
+                } catch {
+                    await self.errorContinuation?.yield(.encodingFailed(underlying: error))
+                }
             }
+
+            // Remove from pending incoming requests when done
+            await self.removePendingIncomingRequest(requestId: request.id)
         }
+
+        // Track the request task so it can be cancelled
+        pendingIncomingRequests[request.id] = requestTask
+    }
+
+    /// Removes a pending incoming request from tracking.
+    private func removePendingIncomingRequest(requestId: RequestId) {
+        pendingIncomingRequests.removeValue(forKey: requestId)
     }
 
     /// Handles an incoming response.
     private func handleResponse(_ response: JsonRpcResponse) async {
-        guard let continuation = pendingRequests.removeValue(forKey: response.id) else {
+        guard let continuation = pendingOutgoingRequests.removeValue(forKey: response.id) else {
             errorContinuation?.yield(.invalidResponseId(response.id))
             return
         }
@@ -383,7 +549,7 @@ public actor Protocol {
     /// Handles an incoming error response.
     private func handleError(_ error: JsonRpcError) async {
         guard let id = error.id,
-              let continuation = pendingRequests.removeValue(forKey: id) else {
+              let continuation = pendingOutgoingRequests.removeValue(forKey: id) else {
             if let id = error.id {
                 errorContinuation?.yield(.invalidResponseId(id))
             } else {
@@ -396,12 +562,17 @@ public actor Protocol {
             return
         }
 
-        let protocolError = ProtocolError.jsonRpcError(
-            code: error.error.code,
-            message: error.error.message,
-            data: error.error.data
-        )
-        continuation.resume(throwing: protocolError)
+        // Check if this is a cancellation error
+        if error.error.code == -32800 {
+            continuation.resume(throwing: CancellationError())
+        } else {
+            let protocolError = ProtocolError.jsonRpcError(
+                code: error.error.code,
+                message: error.error.message,
+                data: error.error.data
+            )
+            continuation.resume(throwing: protocolError)
+        }
     }
 
     /// Handles an incoming notification.
@@ -415,35 +586,6 @@ public actor Protocol {
         Task {
             await handler(notification)
         }
-    }
-}
-
-// MARK: - Timeout Support
-
-/// Runs an async operation with a timeout.
-private func withTimeout<T>(
-    seconds: TimeInterval,
-    operation: @escaping @Sendable () async throws -> T
-) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
-        // Start the operation
-        group.addTask {
-            try await operation()
-        }
-
-        // Start timeout task
-        group.addTask {
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            throw CancellationError()
-        }
-
-        // Wait for first to complete
-        let result = try await group.next()!
-
-        // Cancel remaining tasks
-        group.cancelAll()
-
-        return result
     }
 }
 

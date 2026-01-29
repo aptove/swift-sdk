@@ -91,33 +91,25 @@ public actor ClientConnection {
         }
 
         state = .connecting
-        print("🔌 ClientConnection: Starting connection...")
 
         do {
             // Start the protocol layer
-            print("🔌 ClientConnection: Starting protocol layer...")
             try await protocolLayer.start()
-            print("🔌 ClientConnection: Protocol layer started")
 
             // Register notification handler for session updates
-            print("🔌 ClientConnection: Registering notification handlers...")
             await registerNotificationHandlers()
 
             // Register request handlers for agent->client requests
-            print("🔌 ClientConnection: Registering request handlers...")
             await registerRequestHandlers()
 
             // Send initialize request
-            print("🔌 ClientConnection: Creating initialize request with version: \(version)")
             let initRequest = InitializeRequest(
                 protocolVersion: version,
                 clientCapabilities: client.capabilities,
                 clientInfo: client.info
             )
-            print("🔌 ClientConnection: Sending initialize request...")
 
             let response = try await protocolLayer.initialize(request: initRequest)
-            print("🔌 ClientConnection: Received initialize response: \(response)")
 
             // Store agent info
             self.agentInfo = response.agentInfo
@@ -125,14 +117,12 @@ public actor ClientConnection {
             self.protocolVersion = response.protocolVersion
 
             state = .connected
-            print("🔌 ClientConnection: Connection established successfully")
 
             // Notify client
             await client.onConnected()
 
             return response.agentInfo
         } catch {
-            print("🔌 ClientConnection: Connection failed with error: \(error)")
             state = .disconnected
             throw error
         }

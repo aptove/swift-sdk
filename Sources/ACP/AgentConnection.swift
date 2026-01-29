@@ -47,6 +47,10 @@ public actor AgentConnection {
     /// Task handling incoming requests.
     private var messageHandler: Task<Void, Never>?
 
+    /// Pending request handlers that can be cancelled.
+    /// Maps request ID to the Task handling that request.
+    private var pendingRequestTasks: [RequestId: Task<Void, Never>] = [:]
+
     // MARK: - Initialization
 
     /// Create an agent connection with a transport and agent.
@@ -128,21 +132,49 @@ public actor AgentConnection {
 
     /// Handle an incoming request.
     private func handleRequest(_ request: JsonRpcRequest) async {
-        do {
-            let result = try await routeRequest(request)
-            let response = JsonRpcResponse(id: request.id, result: result)
-            try await transport.send(.response(response))
-        } catch {
-            let errorResponse = JsonRpcError(
-                id: request.id,
-                error: JsonRpcError.ErrorInfo(
-                    code: errorCode(for: error),
-                    message: error.localizedDescription,
-                    data: nil
+        // Create a task to handle the request so it can be cancelled
+        let requestTask = Task { [weak self] in
+            guard let self = self else { return }
+
+            do {
+                let result = try await self.routeRequest(request)
+                let response = JsonRpcResponse(id: request.id, result: result)
+                try await self.transport.send(.response(response))
+            } catch is CancellationError {
+                // Request was cancelled - send cancelled error response
+                let errorResponse = JsonRpcError(
+                    id: request.id,
+                    error: JsonRpcError.ErrorInfo(
+                        code: -32800, // Request cancelled
+                        message: "Request cancelled",
+                        data: nil
+                    )
                 )
-            )
-            try? await transport.send(.error(errorResponse))
+                try? await self.transport.send(.error(errorResponse))
+            } catch {
+                let errorCode = await self.errorCode(for: error)
+                let errorResponse = JsonRpcError(
+                    id: request.id,
+                    error: JsonRpcError.ErrorInfo(
+                        code: errorCode,
+                        message: error.localizedDescription,
+                        data: nil
+                    )
+                )
+                try? await self.transport.send(.error(errorResponse))
+            }
+
+            // Remove from pending tasks when done
+            await self.removePendingRequestTask(requestId: request.id)
         }
+
+        // Track the request task
+        pendingRequestTasks[request.id] = requestTask
+    }
+
+    /// Remove a pending request task.
+    private func removePendingRequestTask(requestId: RequestId) {
+        pendingRequestTasks.removeValue(forKey: requestId)
     }
 
     /// Route a request to the appropriate handler.
@@ -150,11 +182,11 @@ public actor AgentConnection {
         switch request.method {
         case "initialize":
             return try await handleInitialize(request)
-        case "acp/session/new":
+        case "session/new":
             return try await handleNewSession(request)
-        case "acp/session/load":
+        case "session/load":
             return try await handleLoadSession(request)
-        case "acp/prompt":
+        case "session/prompt":
             return try await handlePrompt(request)
         default:
             throw AgentConnectionError.unknownMethod(request.method)
@@ -199,7 +231,30 @@ public actor AgentConnection {
 
     /// Handle an incoming notification.
     private func handleNotification(_ notification: JsonRpcNotification) async {
-        // Currently no notifications are handled by the agent
+        switch notification.method {
+        case "$/cancelRequest":
+            await handleCancelRequest(notification)
+        default:
+            // Other notifications are currently ignored
+            break
+        }
+    }
+
+    /// Handle a cancel request notification.
+    private func handleCancelRequest(_ notification: JsonRpcNotification) async {
+        guard let params = notification.params else { return }
+
+        do {
+            let data = try JSONEncoder().encode(params)
+            let cancelNotification = try JSONDecoder().decode(CancelRequestNotification.self, from: data)
+
+            // Find and cancel the pending request task
+            if let task = pendingRequestTasks.removeValue(forKey: cancelNotification.requestId) {
+                task.cancel()
+            }
+        } catch {
+            // Ignore malformed cancel notifications
+        }
     }
 
     // MARK: - Outbound
