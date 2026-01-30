@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  SWIFT_VERSION: '5.9'
+  SWIFT_VERSION: '6.0'
 
 jobs:
   build-and-test-macos:
