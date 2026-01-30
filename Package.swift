@@ -36,6 +36,11 @@ public let package = Package(
         .executable(
             name: "SimpleClient",
             targets: ["SimpleClient"]
+        ),
+        // Sample: Interactive Client (full-featured)
+        .executable(
+            name: "InteractiveClient",
+            targets: ["InteractiveClient"]
         )
     ],
     dependencies: [
@@ -107,6 +112,14 @@ public let package = Package(
                 "ACPModel"
             ],
             path: "Samples/SimpleClient"
+        ),
+        .executableTarget(
+            name: "InteractiveClient",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Samples/InteractiveClient"
         )
     ]
 )
