@@ -2,7 +2,7 @@
 
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A Swift implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) for building AI agent clients and servers. Ship ACP-compliant agents, clients, and transports for iOS apps, macOS tools, CLI utilities, or any Swift-based host.
 
@@ -316,7 +316,7 @@ Contributions are welcome! Please open an issue to discuss significant changes b
 
 ## License
 
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+Distributed under the Apache License 2.0. See [`LICENSE`](LICENSE) for details.
 
 ---
 
