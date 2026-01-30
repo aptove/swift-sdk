@@ -32,11 +32,22 @@ jobs:
         run: swift test -v --enable-code-coverage
       
       - name: Generate code coverage
+        continue-on-error: true
         run: |
-          xcrun llvm-cov export \
-            .build/debug/ACPPackageTests.xctest/Contents/MacOS/ACPPackageTests \
-            -instr-profile .build/debug/codecov/default.profdata \
-            -format="lcov" > coverage.lcov
+          # Find the test binary - path may vary by Swift version
+          TEST_BINARY=$(find .build/debug -name "ACPPackageTests" -type f -perm +111 2>/dev/null | head -1)
+          if [ -z "$TEST_BINARY" ]; then
+            TEST_BINARY=".build/debug/ACPPackageTests.xctest/Contents/MacOS/ACPPackageTests"
+          fi
+          PROFDATA=".build/debug/codecov/default.profdata"
+          
+          if [ -f "$PROFDATA" ] && [ -f "$TEST_BINARY" ]; then
+            xcrun llvm-cov export "$TEST_BINARY" -instr-profile "$PROFDATA" -format="lcov" > coverage.lcov
+          else
+            echo "Coverage files not found, skipping coverage generation"
+            echo "TEST_BINARY: $TEST_BINARY (exists: $(test -f "$TEST_BINARY" && echo yes || echo no))"
+            echo "PROFDATA: $PROFDATA (exists: $(test -f "$PROFDATA" && echo yes || echo no))"
+          fi
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
