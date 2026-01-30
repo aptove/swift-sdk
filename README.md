@@ -1,6 +1,6 @@
 # ACP Swift SDK
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -34,9 +34,9 @@ ACP standardizes how AI agents and clients exchange messages, negotiate capabili
 
 ## Requirements
 
-- Swift 5.9+
+- Swift 6.0+
 - macOS 12.0+ / iOS 15.0+ / tvOS 15.0+ / watchOS 8.0+
-- Xcode 15.0+ (for development)
+- Xcode 16.0+ (for development)
 
 ## Installation
 
