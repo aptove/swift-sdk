@@ -27,12 +27,12 @@ public let package = Package(
             name: "ACPHTTP",
             targets: ["ACPHTTP"]
         ),
-        // Example: Echo Agent
+        // Sample: Echo Agent
         .executable(
             name: "EchoAgent",
             targets: ["EchoAgent"]
         ),
-        // Example: Simple Client
+        // Sample: Simple Client
         .executable(
             name: "SimpleClient",
             targets: ["SimpleClient"]
@@ -91,22 +91,22 @@ public let package = Package(
             path: "Tests/ACPHTTPTests"
         ),
 
-        // MARK: - Example Executables
+        // MARK: - Sample Applications
         .executableTarget(
             name: "EchoAgent",
             dependencies: [
                 "ACP",
                 "ACPModel"
             ],
-            path: "Sources/EchoAgent"
+            path: "Samples/EchoAgent"
         ),
-        .executableTarget(
+.executableTarget(
             name: "SimpleClient",
             dependencies: [
                 "ACP",
                 "ACPModel"
             ],
-            path: "Sources/SimpleClient"
+            path: "Samples/SimpleClient"
         )
     ]
 )
