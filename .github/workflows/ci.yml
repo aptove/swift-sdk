@@ -12,15 +12,10 @@ env:
 jobs:
   build-and-test-macos:
     name: Build and Test (macOS)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: ${{ env.SWIFT_VERSION }}
       
       - name: Swift Version
         run: swift --version
@@ -59,30 +54,28 @@ jobs:
 
   build-and-test-ios:
     name: Build and Test (iOS Simulator)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: ${{ env.SWIFT_VERSION }}
+      - name: Xcode Version
+        run: xcodebuild -version
       
       - name: List available simulators
-        run: xcrun simctl list devices
+        run: xcrun simctl list devices available | grep -E "iPhone|iPad" | head -20
       
       - name: Build for iOS
         run: |
           xcodebuild build-for-testing \
             -scheme ACP \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
             -skipPackagePluginValidation \
-            -skipMacroValidation || echo "iOS build configuration pending"
+            -skipMacroValidation
 
   lint:
     name: SwiftLint
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -95,7 +88,7 @@ jobs:
 
   format-check:
     name: Format Check
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
