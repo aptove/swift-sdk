@@ -48,7 +48,7 @@ internal final class E2EIntegrationTests: XCTestCase {
 
         // List of sessions to return for listSessions tests
         var sessionsToReturn: [SessionInfo] = []
-        
+
         // Track list sessions requests
         var listSessionsRequests: [ListSessionsRequest] = []
 
@@ -111,13 +111,13 @@ internal final class E2EIntegrationTests: XCTestCase {
                 throw AgentError.notImplemented(method: "listSessions")
             }
             listSessionsRequests.append(request)
-            
+
             // Filter by cwd if provided
             var sessions = sessionsToReturn
             if let cwd = request.cwd {
                 sessions = sessions.filter { $0.cwd.contains(cwd) }
             }
-            
+
             // Handle pagination
             let pageSize = 10
             let startIndex: Int
@@ -126,17 +126,17 @@ internal final class E2EIntegrationTests: XCTestCase {
             } else {
                 startIndex = 0
             }
-            
+
             let endIndex = min(startIndex + pageSize, sessions.count)
             let pageSessions = Array(sessions[startIndex..<endIndex])
-            
+
             let nextCursor: Cursor?
             if endIndex < sessions.count {
                 nextCursor = Cursor(value: String(endIndex))
             } else {
                 nextCursor = nil
             }
-            
+
             return ListSessionsResponse(sessions: pageSessions, nextCursor: nextCursor)
         }
     }
@@ -979,7 +979,7 @@ internal final class E2EIntegrationTests: XCTestCase {
         )
 
         let client = PermissionHandlingClient(
-            onPermissionRequest: { toolCall, options in
+            onPermissionRequest: { _, options in
                 // Client approves the first option
                 return RequestPermissionResponse(outcome: .selected(options[0].optionId))
             }
