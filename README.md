@@ -1,18 +1,52 @@
 # ACP Swift SDK
 
-A Swift implementation of the Agent Client Protocol (ACP) for building AI agent clients and servers.
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Overview
+A Swift implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) for building AI agent clients and servers. Ship ACP-compliant agents, clients, and transports for iOS apps, macOS tools, CLI utilities, or any Swift-based host.
 
-This SDK provides a complete implementation of the [Agent Client Protocol](https://agentclientprotocol.org/) specification, enabling Swift applications to communicate with AI agents using a standardized protocol.
+> **Note:** This SDK is a Swift port of the [ACP Kotlin SDK](https://github.com/anthropics/acp-kotlin-sdk) (v0.15.1), providing equivalent functionality with Swift-native APIs and idioms.
+
+## What is ACP Swift SDK?
+
+ACP standardizes how AI agents and clients exchange messages, negotiate capabilities, and handle file operations. This SDK provides a Swift implementation of that spec:
+
+- Type-safe models for every ACP message and capability
+- Agent and client connection stacks (JSON-RPC over STDIO)
+- HTTP/WebSocket transport support (optional module)
+- Comprehensive samples demonstrating end-to-end sessions and tool calls
+
+### Common scenarios
+
+- Embed an ACP client in your iOS/macOS app to talk to external agents
+- Build a headless automation agent that serves ACP prompts and tools
+- Prototype new transports with the connection layer and model modules
+- Validate your ACP integration using the supplied test utilities
+
+## Modules at a glance
+
+| Module | Description | Main types |
+|--------|-------------|------------|
+| `ACPModel` | Pure data model for ACP messages, capabilities, and enums | `JsonRpcMessage`, `PromptRequest`, `SessionUpdate` |
+| `ACP` | Core agent/client runtime with STDIO transport | `Agent`, `Client`, `AgentConnection`, `ClientConnection`, `StdioTransport` |
+| `ACPHTTP` | HTTP/WebSocket transport support | `WebSocketTransport` |
+
+## Requirements
+
+- Swift 5.9+
+- macOS 12.0+ / iOS 15.0+ / tvOS 15.0+ / watchOS 8.0+
+- Xcode 15.0+ (for development)
 
 ## Installation
+
+### Swift Package Manager
 
 Add the following to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/anthropics/acp-swift-sdk.git", branch: "main")
+    .package(url: "https://github.com/anthropics/acp-swift-sdk.git", from: "0.1.0")
 ]
 ```
 
@@ -24,134 +58,266 @@ Then add the desired targets as dependencies:
     dependencies: [
         .product(name: "ACPModel", package: "acp-swift-sdk"),
         .product(name: "ACP", package: "acp-swift-sdk"),
-        .product(name: "ACPHTTP", package: "acp-swift-sdk"),
+        // Optional:
+        // .product(name: "ACPHTTP", package: "acp-swift-sdk"),
     ]
 )
 ```
 
-## Modules
+## Quick start
 
-### ACPModel
+### Write your first agent
 
-Core protocol types and message definitions. Includes:
-
-- JSON-RPC message types
-- Request/response types for all ACP operations
-- Notification types
-- Capability types
-
-### ACP
-
-Client and server implementation for the ACP protocol:
-
-- `Client` - High-level client for connecting to agents
-- `Protocol` - Low-level protocol layer handling JSON-RPC messaging
-- Transport abstraction for different communication channels
-
-### ACPHTTP
-
-HTTP transport implementation:
-
-- HTTP client transport using URLSession
-- HTTP server transport using Swift NIO
-
-## Usage
-
-### Basic Client Example
+Set up an `Agent` implementation, wire the standard STDIO transport, and stream responses:
 
 ```swift
 import ACP
-import ACPHTTP
+import ACPModel
+import Foundation
 
-// Create a client with HTTP transport
-let transport = HTTPClientTransport(url: URL(string: "http://localhost:8080")!)
-let client = Client(transport: transport)
+// 1. Implement the Agent protocol
+final class MyAgent: Agent, @unchecked Sendable {
+    var capabilities: AgentCapabilities {
+        AgentCapabilities(
+            loadSession: true,
+            promptCapabilities: PromptCapabilities(
+                audio: false,
+                image: false,
+                embeddedContext: true
+            )
+        )
+    }
 
-// Connect and initialize
-try await client.connect(
-    clientInfo: ClientInfo(
-        clientId: "my-app",
-        clientVersion: "1.0.0"
-    )
-)
+    var info: Implementation? {
+        Implementation(name: "MyAgent", version: "1.0.0")
+    }
 
-// Send a prompt
-let response = try await client.prompt(request: PromptRequest(
-    sessionId: client.agentInfo.sessionId,
-    messages: [
-        PromptMessage(role: .user, content: .text("Hello, agent!"))
-    ]
-))
+    func createSession(request: NewSessionRequest) async throws -> NewSessionResponse {
+        return NewSessionResponse(sessionId: SessionId())
+    }
 
-// Close when done
-await client.close()
+    func handlePrompt(request: PromptRequest, context: AgentContext) async throws -> PromptResponse {
+        // Extract user text from prompt
+        let userText = request.prompt.compactMap { block -> String? in
+            if case .text(let content) = block { return content.text }
+            return nil
+        }.joined(separator: " ")
+
+        // Stream response back
+        try await context.sendTextMessage("Agent heard: \(userText)")
+
+        // Use client capabilities if available
+        if context.clientCapabilities.fs?.readTextFile == true {
+            let file = try await context.readTextFile(path: "README.md")
+            try await context.sendTextMessage("README preview: \(file.content.prefix(120))...")
+        }
+
+        return PromptResponse(stopReason: .endTurn)
+    }
+}
+
+// 2. Wire up the transport and start
+@main
+struct AgentMain {
+    static func main() async throws {
+        let transport = StdioTransport()
+        let agent = MyAgent()
+        let connection = AgentConnection(transport: transport, agent: agent)
+        
+        try await connection.start()
+        await connection.waitUntilComplete()
+    }
+}
 ```
 
-## Protocol Version
+### Write your first client
 
-This SDK implements **ACP Protocol Version 2025-02-07**.
+Create a `ClientConnection` with your own `Client` implementation:
 
-## Implemented Features
+```swift
+import ACP
+import ACPModel
+import Foundation
 
-### Core Operations
-- ✅ Initialize/shutdown handshake
-- ✅ Prompt/response with streaming
-- ✅ Session management (start, load, close, config)
-- ✅ Session modes
-- ✅ Cancellation support
+// 1. Implement the Client protocol
+final class MyClient: Client, ClientSessionOperations, @unchecked Sendable {
+    var capabilities: ClientCapabilities {
+        ClientCapabilities(
+            fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
+            terminal: true
+        )
+    }
+
+    var info: Implementation? {
+        Implementation(name: "MyClient", version: "1.0.0")
+    }
+
+    func onSessionUpdate(_ update: SessionUpdate) async {
+        print("Agent update: \(update)")
+    }
+
+    func onConnected() async {
+        print("Connected to agent")
+    }
+
+    func onDisconnected(error: Error?) async {
+        print("Disconnected")
+    }
+
+    // ClientSessionOperations
+    func requestPermissions(
+        toolCall: ToolCallUpdateData,
+        permissions: [PermissionOption],
+        meta: MetaField?
+    ) async throws -> RequestPermissionResponse {
+        // Auto-approve first option (replace with real UX)
+        return RequestPermissionResponse(outcome: .selected(permissions.first!.optionId))
+    }
+
+    func notify(notification: SessionUpdate, meta: MetaField?) async {
+        print("Notification: \(notification)")
+    }
+
+    // FileSystemOperations
+    func readTextFile(path: String, line: UInt32?, limit: UInt32?, meta: MetaField?) async throws -> ReadTextFileResponse {
+        let content = try String(contentsOfFile: path, encoding: .utf8)
+        return ReadTextFileResponse(content: content)
+    }
+
+    func writeTextFile(path: String, content: String, meta: MetaField?) async throws -> WriteTextFileResponse {
+        try content.write(toFile: path, atomically: true, encoding: .utf8)
+        return WriteTextFileResponse()
+    }
+}
+
+// 2. Connect to an agent
+@main
+struct ClientMain {
+    static func main() async throws {
+        // Spawn agent process
+        let (transport, process) = try createProcessTransport(command: "my-agent")
+        let client = MyClient()
+        let connection = ClientConnection(transport: transport, client: client)
+
+        // Initialize connection
+        let agentInfo = try await connection.connect()
+        print("Connected to: \(agentInfo?.name ?? "agent")")
+
+        // Create session
+        let session = try await connection.createSession(
+            request: NewSessionRequest(cwd: FileManager.default.currentDirectoryPath, mcpServers: [])
+        )
+
+        // Send prompt
+        let response = try await connection.prompt(request: PromptRequest(
+            sessionId: session.sessionId,
+            prompt: [.text(TextContent(text: "Hello, agent!"))]
+        ))
+
+        print("Response: \(response.stopReason)")
+        await connection.disconnect()
+    }
+}
+```
+
+## Sample projects
+
+| Sample | Description | Command |
+|--------|-------------|---------|
+| `EchoAgent` | Simple agent that echoes messages back | `swift run EchoAgent` |
+| `SimpleClient` | Basic client connecting to an agent | `swift run SimpleClient "agent-command"` |
+| `InteractiveClient` | Full-featured CLI client with file/terminal ops | `swift run InteractiveClient copilot --acp` |
+| `SimpleAgentApp` | In-process agent + client demo | `swift run SimpleAgentApp` |
+
+Each sample includes a README with detailed usage instructions. Run samples from the `swift-sdk` directory.
+
+## Capabilities
+
+### Protocol
+- ✅ Full ACP protocol coverage with JSON-RPC framing
+- ✅ Typed request/response wrappers
+- ✅ Message correlation, error propagation
+- ✅ Protocol version: **2025-02-07**
+
+### Agent runtime
+- ✅ Capability negotiation and session lifecycle
+- ✅ Prompt streaming with session updates
+- ✅ Tool-call progress, execution plans, permission requests
+- ✅ File-system operations via client callbacks
+
+### Client runtime
+- ✅ Capability advertising and lifecycle management
+- ✅ File-system helpers and permission handling
+- ✅ Session update listeners
+- ✅ Process spawning for external agents
 
 ### Session Operations
-- ✅ Start session
+- ✅ Create session (`session/new`)
+- ✅ Send prompts (`session/prompt`)
+- ✅ Cancel requests (`session/cancel`)
+- ✅ Delete session (`session/delete`)
 - ✅ Load session (with message history)
-- ✅ Close session
 - ✅ Session configuration (get/set)
+- ⚠️ List sessions (unstable)
+- ⚠️ Fork session (unstable)
+- ⚠️ Resume session (unstable)
 
-### Events and Notifications
-- ✅ Message streaming events
-- ✅ Agent events
-- ✅ Session events
-- ✅ Client events
+### Transports
+- ✅ STDIO transport (pipes, file handles)
+- ✅ WebSocket transport (via ACPHTTP module)
+- 🚧 HTTP SSE transport (not implemented in any ACP SDK)
 
-### Capabilities
-- ✅ Agent capabilities negotiation
-- ✅ Client capabilities declaration
-- ✅ Model capabilities
-- ✅ Permissions model
+## Architecture
 
-### Tools and Models
-- ✅ Tool definitions and execution
-- ✅ Tool approval flow
-- ✅ Model listing
-- ✅ Model preferences
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Agent App     │    │   Client App    │
+│   (Agent impl)  │    │  (Client impl)  │
+├─────────────────┤    ├─────────────────┤
+│ AgentConnection │    │ClientConnection │
+├─────────────────┤    ├─────────────────┤
+│    Protocol     │    │    Protocol     │
+├─────────────────┤    ├─────────────────┤
+│   Transport     │◄──►│   Transport     │
+│ (Stdio, WebSkt) │    │ (Stdio, WebSkt) │
+└─────────────────┘    └─────────────────┘
+```
 
-### File Operations
-- ✅ File read/write/edit permissions
-- ✅ Directory listing permissions
-- ✅ Terminal execution permissions
+**Lifecycle overview:** Clients establish a transport, call `connect()` to negotiate capabilities, create sessions, send prompts, and react to streamed updates (tool calls, permissions, status). Agents implement the mirror of these methods, delegating file and permission requests back to the client when required.
 
-### Unstable APIs
+## Testing
 
-The following APIs are marked as **UNSTABLE** and may change without notice:
+Run the test suite:
 
-- ⚠️ `listSessions()` - List existing sessions
-- ⚠️ `forkSession()` - Fork a session to create an independent copy
-- ⚠️ `resumeSession()` - Resume a session without message history
+```bash
+cd swift-sdk
+swift test
+```
 
-## Not Implemented
+Run specific test files:
 
-The following features are defined in the ACP specification but not yet implemented in this SDK:
+```bash
+swift test --filter E2EIntegrationTests
+swift test --filter ACPModelTests
+```
 
-### HTTP SSE Transport
+## Contributing
 
-Server-Sent Events (SSE) transport is not implemented. This transport type allows servers to push events to clients over a persistent HTTP connection. Note that **no ACP SDK currently implements HTTP SSE transport** - the feature exists only as model types in the specification.
+Contributions are welcome! Please open an issue to discuss significant changes before submitting a PR.
 
-If you need real-time server-to-client streaming, use the WebSocket transport or the built-in streaming support in the standard HTTP transport.
+1. Fork and clone the repo.
+2. Run `swift test` to execute the test suite.
+3. Ensure all tests pass before submitting.
 
-## Requirements
+## Support
 
-- Swift 5.9+
-- macOS 13.0+ / iOS 16.0+ / tvOS 16.0+ / watchOS 9.0+
+- File bugs and feature requests through GitHub Issues.
+- For questions or integration help, start a discussion or reach out through the issue tracker.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for details.
+
+---
+
+*This SDK maintains feature parity with the [ACP Kotlin SDK](https://github.com/anthropics/acp-kotlin-sdk) v0.15.1.*
