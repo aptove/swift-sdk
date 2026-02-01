@@ -348,11 +348,26 @@ public actor Protocol {
     }
 
     /// Handle cancellation of an outgoing request.
+    ///
+    /// This method sends a cancel notification and waits briefly (up to gracefulCancellationTimeoutSeconds)
+    /// for the request to complete gracefully. If the request doesn't complete in time, it's forcibly cancelled.
     private func handleRequestCancellation(requestId: RequestId) async {
         // Send cancel notification to the other side
         await sendCancelNotification(requestId: requestId, message: "Request cancelled by client")
 
-        // Resume continuation with cancellation error if still pending
+        // Wait for graceful cancellation (up to gracefulCancellationTimeoutSeconds)
+        // The request handler may finish its cleanup work within this time
+        let startTime = Date()
+        let checkInterval: UInt64 = 50_000_000 // 50ms
+        while Date().timeIntervalSince(startTime) < gracefulCancellationTimeoutSeconds {
+            // Check if the request was already completed (response received or error)
+            if pendingOutgoingRequests[requestId] == nil {
+                return // Request completed gracefully
+            }
+            try? await Task.sleep(nanoseconds: checkInterval)
+        }
+
+        // Graceful timeout expired - force cancel if still pending
         if let continuation = pendingOutgoingRequests.removeValue(forKey: requestId) {
             continuation.resume(throwing: CancellationError())
         }

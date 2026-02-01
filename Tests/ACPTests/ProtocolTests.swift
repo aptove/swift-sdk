@@ -432,6 +432,97 @@ internal final class ProtocolTests: XCTestCase {
 
     // Note: Timeout test removed as it hangs - timeout mechanism needs improvement
     // TODO: Add proper timeout test once withTimeout is fixed to properly cancel
+
+    // MARK: - Graceful Cancellation Tests
+
+    /// Test that request cancellation waits for graceful completion within timeout.
+    ///
+    /// This test mirrors Kotlin SDK's:
+    /// "request cancelled from client by coroutine cancel should wait for graceful cancellation"
+    ///
+    /// The gracefulCancellationTimeoutSeconds is set to 1 second (matching Kotlin SDK).
+    /// When a request is cancelled, the Protocol should wait up to 1 second for a response
+    /// before forcibly cancelling.
+    func testGracefulCancellationWaitsForResponse() async throws {
+        let transport = MockTransport()
+        let proto = Protocol(transport: transport, gracefulCancellationTimeoutSeconds: 1)
+        try await proto.start()
+
+        // Send request in background
+        let requestTask = Task {
+            try await proto.sendRequest(method: "test", params: nil)
+        }
+
+        // Give request time to be sent
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Start timing
+        let startTime = Date()
+
+        // Cancel the request
+        requestTask.cancel()
+
+        // Simulate graceful response arriving 500ms after cancellation (within 1s timeout)
+        Task {
+            try await Task.sleep(nanoseconds: 500_000_000) // 500ms
+            transport.simulateResponse(id: .int(1), result: .object(["status": .string("graceful_complete")]))
+        }
+
+        // Wait for task to complete
+        let result = try? await requestTask.value
+        let elapsed = Date().timeIntervalSince(startTime)
+
+        // Should have waited for the response (at least ~500ms)
+        XCTAssertGreaterThan(elapsed, 0.4, "Should wait for graceful response")
+        XCTAssertLessThan(elapsed, 1.5, "Should not wait longer than graceful timeout")
+
+        // Should have received the response (not a cancellation error)
+        XCTAssertNotNil(result, "Should receive graceful response")
+
+        await proto.close()
+    }
+
+    /// Test that graceful cancellation times out after gracefulCancellationTimeoutSeconds.
+    ///
+    /// This test verifies that if no response comes within the timeout, the request is forcibly cancelled.
+    func testGracefulCancellationTimeoutExpires() async throws {
+        let transport = MockTransport()
+        // Use a short timeout for testing (500ms)
+        let proto = Protocol(transport: transport, gracefulCancellationTimeoutSeconds: 0.5)
+        try await proto.start()
+
+        // Send request in background
+        let requestTask = Task {
+            try await proto.sendRequest(method: "test", params: nil)
+        }
+
+        // Give request time to be sent
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Start timing
+        let startTime = Date()
+
+        // Cancel the request (no response will come)
+        requestTask.cancel()
+
+        // Wait for task to complete
+        do {
+            _ = try await requestTask.value
+            XCTFail("Expected cancellation error")
+        } catch is CancellationError {
+            // Expected
+        } catch {
+            XCTFail("Expected CancellationError, got \(error)")
+        }
+
+        let elapsed = Date().timeIntervalSince(startTime)
+
+        // Should have waited approximately the graceful timeout (500ms)
+        XCTAssertGreaterThan(elapsed, 0.4, "Should wait for graceful timeout")
+        XCTAssertLessThan(elapsed, 1.0, "Should not wait much longer than graceful timeout")
+
+        await proto.close()
+    }
 }
 
 // MARK: - Helper Extensions
