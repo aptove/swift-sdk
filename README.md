@@ -1,3 +1,7 @@
+<a href="https://agentclientprotocol.com/" >
+  <img alt="Agent Client Protocol" src="https://zed.dev/img/acp/banner-dark.webp">
+</a>
+
 # ACP Swift SDK
 
 [![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
