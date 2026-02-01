@@ -158,15 +158,6 @@ let response = try await clientConnection.prompt(...)
 3. **Development** - Iterate quickly on agent implementation
 4. **Debugging** - Step through both agent and client code together
 
-## Comparison with Other Samples
-
-| Sample | Agent | Client | Transport | Best For |
-|--------|-------|--------|-----------|----------|
-| **SimpleAgentApp** | ✅ In-process | ✅ In-process | In-memory | Learning & Testing |
-| EchoAgent | ✅ Standalone | ❌ | Stdio | Agent development |
-| SimpleClient | ❌ | ✅ Minimal | Process | Client basics |
-| InteractiveClient | ❌ | ✅ Full-featured | Process | Production use |
-
 ## Extending
 
 To add new agent behaviors:
