@@ -51,7 +51,7 @@ public struct InitializeResponse: AcpResponse, Codable, Sendable, Hashable {
     public let agentCapabilities: AgentCapabilities
 
     /// Available authentication methods
-    public let authMethods: [String]?
+    public let authMethods: [AuthMethod]?
 
     /// Agent implementation information
     public let agentInfo: Implementation?
@@ -70,7 +70,7 @@ public struct InitializeResponse: AcpResponse, Codable, Sendable, Hashable {
     public init(
         protocolVersion: ProtocolVersion,
         agentCapabilities: AgentCapabilities = AgentCapabilities(),
-        authMethods: [String]? = nil,
+        authMethods: [AuthMethod]? = nil,
         agentInfo: Implementation? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
@@ -129,7 +129,7 @@ public struct AgentInfo: Codable, Sendable, Hashable {
     public let capabilities: AgentCapabilities
 
     /// Available authentication methods
-    public let authMethods: [String]
+    public let authMethods: [AuthMethod]
 
     /// Agent implementation information
     public let implementation: Implementation?
@@ -148,7 +148,7 @@ public struct AgentInfo: Codable, Sendable, Hashable {
     public init(
         protocolVersion: ProtocolVersion = .current,
         capabilities: AgentCapabilities = AgentCapabilities(),
-        authMethods: [String] = [],
+        authMethods: [AuthMethod] = [],
         implementation: Implementation? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {

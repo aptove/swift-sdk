@@ -67,6 +67,19 @@ public struct PromptCapabilities: Codable, Sendable, Hashable {
         self.embeddedContext = embeddedContext
         self._meta = _meta
     }
+
+    // Custom decoder to provide defaults for missing fields
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.audio = try container.decodeIfPresent(Bool.self, forKey: .audio) ?? false
+        self.image = try container.decodeIfPresent(Bool.self, forKey: .image) ?? false
+        self.embeddedContext = try container.decodeIfPresent(Bool.self, forKey: .embeddedContext) ?? false
+        self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case audio, image, embeddedContext, _meta
+    }
 }
 
 /// MCP capabilities supported by the agent
@@ -251,5 +264,19 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.mcpCapabilities = mcpCapabilities
         self.sessionCapabilities = sessionCapabilities
         self._meta = _meta
+    }
+
+    // Custom decoder to provide defaults for missing fields (protocol compatibility)
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.loadSession = try container.decodeIfPresent(Bool.self, forKey: .loadSession) ?? false
+        self.promptCapabilities = try container.decodeIfPresent(PromptCapabilities.self, forKey: .promptCapabilities) ?? PromptCapabilities()
+        self.mcpCapabilities = try container.decodeIfPresent(McpCapabilities.self, forKey: .mcpCapabilities)
+        self.sessionCapabilities = try container.decodeIfPresent(SessionCapabilities.self, forKey: .sessionCapabilities)
+        self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, _meta
     }
 }
