@@ -43,15 +43,22 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
     private let stateActor: WebSocketStateActor
     private var webSocketTask: URLSessionWebSocketTask?
     private let session: URLSession
+    private var pingTask: Task<Void, Never>?
+
+    /// Interval between WebSocket ping frames (in seconds).
+    /// Keeps the connection alive and detects broken connections early.
+    public let pingInterval: TimeInterval
 
     /// Initialize a new WebSocket transport.
     ///
     /// - Parameters:
     ///   - url: The WebSocket URL to connect to (must use ws:// or wss://)
     ///   - session: URLSession to use for connections (defaults to shared)
-    public init(url: URL, session: URLSession = .shared) {
+    ///   - pingInterval: Interval between keepalive pings in seconds (default: 30)
+    public init(url: URL, session: URLSession = .shared, pingInterval: TimeInterval = 30) {
         self.url = url
         self.session = session
+        self.pingInterval = pingInterval
         self.stateActor = WebSocketStateActor()
     }
 
@@ -75,6 +82,9 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
         Task {
             await self.readLoop()
         }
+
+        // Start ping keepalive loop
+        startPingLoop()
 
         // Transition to started
         try await stateActor.transitionTo(.started)
@@ -104,6 +114,10 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
     public func close() async {
         logger.trace("Closing WebSocket transport")
 
+        // Stop ping loop
+        pingTask?.cancel()
+        pingTask = nil
+
         do {
             try await stateActor.transitionTo(.closing)
         } catch {
@@ -123,6 +137,31 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
         await stateActor.finish()
 
         logger.trace("WebSocket transport closed")
+    }
+
+    // MARK: - Ping Keepalive
+
+    private func startPingLoop() {
+        pingTask = Task { [weak self] in
+            guard let self = self else { return }
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(self.pingInterval * 1_000_000_000))
+                } catch {
+                    break // Task cancelled
+                }
+
+                guard !Task.isCancelled, let task = self.webSocketTask else { break }
+
+                task.sendPing { error in
+                    if let error = error {
+                        self.logger.warning("WebSocket ping failed: \(error)")
+                    } else {
+                        self.logger.trace("WebSocket ping/pong succeeded")
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Read Loop
