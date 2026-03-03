@@ -471,6 +471,12 @@ public actor Protocol {
                 await handleNotification(notification)
             }
         }
+
+        // Transport closed - fail all pending outgoing requests so callers don't hang.
+        for (_, continuation) in pendingOutgoingRequests {
+            continuation.resume(throwing: ProtocolError.transportClosed)
+        }
+        pendingOutgoingRequests.removeAll()
     }
 
     /// Handles an incoming request from the agent.

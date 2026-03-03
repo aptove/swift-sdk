@@ -155,6 +155,9 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
                 if nsError.domain == NSPOSIXErrorDomain && nsError.code == 57 {
                     // Socket not connected - normal closure
                     logger.trace("WebSocket closed normally")
+                    // Finish the message stream so consumers (e.g. Protocol.processMessages)
+                    // exit cleanly and can fail any pending requests.
+                    await close()
                     break
                 }
 
@@ -187,6 +190,10 @@ public final class WebSocketTransport: Transport, @unchecked Sendable {
             await stateActor.emitMessage(message)
         } catch {
             logger.warning("Failed to parse JSON-RPC message: \(error)")
+            #if DEBUG
+            print("⚠️ WebSocketTransport: Failed to parse JSON-RPC message: \(error)")
+            print("⚠️ WebSocketTransport: Raw message (first 500 chars): \(text.prefix(500))")
+            #endif
         }
     }
 }
