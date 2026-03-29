@@ -11,9 +11,6 @@
 //   # Connect to GitHub Copilot agent
 //   swift run InteractiveClient copilot --acp
 //
-//   # Connect to Gemini agent
-//   swift run InteractiveClient gemini --experimental-acp
-//
 //   # Connect to any agent via command
 //   swift run InteractiveClient <command> [args...]
 
@@ -493,7 +490,7 @@ struct InteractiveClientMain {
 
         Examples:
           swift run InteractiveClient copilot --acp
-          swift run InteractiveClient gemini --experimental-acp
+          swift run InteractiveClient copilot --acp
 
         Description:
           Connects to an ACP agent via stdio and provides an interactive

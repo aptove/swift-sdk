@@ -25,7 +25,7 @@ swift build --target InteractiveClient
 swift run InteractiveClient copilot --acp
 
 # Connect to Gemini
-swift run InteractiveClient gemini --experimental-acp
+swift run InteractiveClient copilot --acp
 
 # Connect to EchoAgent (for testing)
 swift run InteractiveClient swift run EchoAgent
