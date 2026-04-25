@@ -50,7 +50,7 @@ Add the following to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/anthropics/acp-swift-sdk.git", from: "0.1.0")
+    .package(url: "https://github.com/aptove/swift-sdk.git", from: "0.1.0")
 ]
 ```
 
@@ -60,10 +60,10 @@ Then add the desired targets as dependencies:
 .target(
     name: "YourTarget",
     dependencies: [
-        .product(name: "ACPModel", package: "acp-swift-sdk"),
-        .product(name: "ACP", package: "acp-swift-sdk"),
+        .product(name: "ACPModel", package: "ACP"),
+        .product(name: "ACP", package: "ACP"),
         // Optional:
-        // .product(name: "ACPHTTP", package: "acp-swift-sdk"),
+        // .product(name: "ACPHTTP", package: "ACP"),
     ]
 )
 ```
@@ -198,8 +198,20 @@ final class MyClient: Client, ClientSessionOperations, @unchecked Sendable {
 @main
 struct ClientMain {
     static func main() async throws {
-        // Spawn agent process
-        let (transport, process) = try createProcessTransport(command: "my-agent")
+        // Spawn agent process and wire up stdio pipes
+        let process = Process()
+        let stdinPipe = Pipe()
+        let stdoutPipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["my-agent"]
+        process.standardInput = stdinPipe
+        process.standardOutput = stdoutPipe
+        try process.run()
+
+        let transport = StdioTransport(
+            input: stdoutPipe.fileHandleForReading,
+            output: stdinPipe.fileHandleForWriting
+        )
         let client = MyClient()
         let connection = ClientConnection(transport: transport, client: client)
 
