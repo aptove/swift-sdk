@@ -147,7 +147,7 @@ public protocol ClientSession: Sendable {
     @available(*, message: "Unstable API - may change without notice")
     func setConfigOption(
         _ configId: SessionConfigId,
-        value: SessionConfigValueId,
+        value: SessionConfigOptionValue,
         meta: MetaField?
     ) async throws -> SetSessionConfigOptionResponse
 }
@@ -175,8 +175,18 @@ extension ClientSession {
     @available(*, message: "Unstable API - may change without notice")
     public func setConfigOption(
         _ configId: SessionConfigId,
-        value: SessionConfigValueId
+        value: SessionConfigOptionValue
     ) async throws -> SetSessionConfigOptionResponse {
         try await setConfigOption(configId, value: value, meta: nil)
+    }
+
+    /// **UNSTABLE** - Deprecated convenience overload for string values.
+    @available(*, deprecated, renamed: "setConfigOption(_:value:meta:)")
+    public func setConfigOption(
+        _ configId: SessionConfigId,
+        value: SessionConfigValueId,
+        meta: MetaField? = nil
+    ) async throws -> SetSessionConfigOptionResponse {
+        try await setConfigOption(configId, value: .string(value.value), meta: meta)
     }
 }

@@ -139,6 +139,50 @@ extension SessionConfigSelectOptions: Codable {
     }
 }
 
+// MARK: - Session Config Option Value
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Represents a value that can be either a string (for select options) or a boolean (for boolean options).
+public enum SessionConfigOptionValue: Sendable, Hashable {
+    /// A string value, used for select-type configuration options
+    case string(String)
+
+    /// A boolean value, used for boolean-type configuration options
+    case bool(Bool)
+
+    /// An unknown value type for forward compatibility
+    case unknown(JsonValue)
+}
+
+extension SessionConfigOptionValue: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let boolVal = try? container.decode(Bool.self) {
+            self = .bool(boolVal)
+        } else if let strVal = try? container.decode(String.self) {
+            self = .string(strVal)
+        } else {
+            let raw = try container.decode(JsonValue.self)
+            self = .unknown(raw)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .bool(let value):
+            try container.encode(value)
+        case .unknown(let value):
+            try container.encode(value)
+        }
+    }
+}
+
 // MARK: - Session Config Option
 
 /// **UNSTABLE**
@@ -146,11 +190,44 @@ extension SessionConfigSelectOptions: Codable {
 /// This capability is not part of the spec yet, and may be removed or changed at any point.
 ///
 /// Configuration option types for sessions.
-///
-/// Currently only supports select-type options with discriminator-based serialization.
 public enum SessionConfigOption: Sendable, Hashable {
     /// A select-type configuration option
     case select(SessionConfigOptionSelect)
+
+    /// A boolean-type configuration option
+    case boolean(SessionConfigOptionBoolean)
+}
+
+/// Data for a boolean-type configuration option.
+public struct SessionConfigOptionBoolean: Codable, Sendable, Hashable {
+    /// The configuration option identifier
+    public let id: SessionConfigId
+
+    /// Display name for the option
+    public let name: String
+
+    /// Optional description
+    public let description: String?
+
+    /// The current boolean value
+    public let currentValue: Bool
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        id: SessionConfigId,
+        name: String,
+        description: String? = nil,
+        currentValue: Bool,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.currentValue = currentValue
+        self._meta = _meta
+    }
 }
 
 /// Data for a select-type configuration option.
@@ -206,18 +283,21 @@ extension SessionConfigOption: Codable {
         case type = "type"
     }
 
-    private enum TypeValue: String, Codable {
-        case select = "select"
-    }
-
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(TypeValue.self, forKey: .type)
+        let typeString = try container.decode(String.self, forKey: .type)
 
-        switch type {
-        case .select:
-            let data = try SessionConfigOptionSelect(from: decoder)
-            self = .select(data)
+        switch typeString {
+        case "select":
+            self = .select(try SessionConfigOptionSelect(from: decoder))
+        case "boolean":
+            self = .boolean(try SessionConfigOptionBoolean(from: decoder))
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Unknown SessionConfigOption type: \(typeString)"
+            )
         }
     }
 
@@ -226,7 +306,10 @@ extension SessionConfigOption: Codable {
 
         switch self {
         case .select(let data):
-            try container.encode(TypeValue.select, forKey: .type)
+            try container.encode("select", forKey: .type)
+            try data.encode(to: encoder)
+        case .boolean(let data):
+            try container.encode("boolean", forKey: .type)
             try data.encode(to: encoder)
         }
     }

@@ -75,7 +75,7 @@ public struct SetSessionConfigOptionRequest: AcpRequest, AcpWithSessionId, Codab
     public let configId: SessionConfigId
 
     /// The value to set
-    public let value: SessionConfigValueId
+    public let value: SessionConfigOptionValue
 
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
@@ -90,7 +90,7 @@ public struct SetSessionConfigOptionRequest: AcpRequest, AcpWithSessionId, Codab
     public init(
         sessionId: SessionId,
         configId: SessionConfigId,
-        value: SessionConfigValueId,
+        value: SessionConfigOptionValue,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
