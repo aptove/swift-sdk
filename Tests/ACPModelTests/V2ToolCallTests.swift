@@ -25,13 +25,13 @@ internal final class V2ToolCallTests: XCTestCase {
     }
 
     func testV2ToolKindDecoding() throws {
-        let data = "\"execute\"".data(using: .utf8)!
+        let data = Data("\"execute\"".utf8)
         let kind = try JSONDecoder().decode(V2ToolKind.self, from: data)
         XCTAssertEqual(kind, .execute)
     }
 
     func testV2ToolKindUnknownValue() throws {
-        let data = "\"future_tool\"".data(using: .utf8)!
+        let data = Data("\"future_tool\"".utf8)
         let kind = try JSONDecoder().decode(V2ToolKind.self, from: data)
         XCTAssertEqual(kind.rawValue, "future_tool")
         XCTAssertNotEqual(kind, .read)
@@ -48,13 +48,13 @@ internal final class V2ToolCallTests: XCTestCase {
     }
 
     func testV2ToolCallStatusDecoding() throws {
-        let data = "\"in_progress\"".data(using: .utf8)!
+        let data = Data("\"in_progress\"".utf8)
         let status = try JSONDecoder().decode(V2ToolCallStatus.self, from: data)
         XCTAssertEqual(status, .inProgress)
     }
 
     func testV2ToolCallStatusUnknownValue() throws {
-        let data = "\"future_status\"".data(using: .utf8)!
+        let data = Data("\"future_status\"".utf8)
         let status = try JSONDecoder().decode(V2ToolCallStatus.self, from: data)
         XCTAssertEqual(status.rawValue, "future_status")
     }
@@ -69,7 +69,7 @@ internal final class V2ToolCallTests: XCTestCase {
     }
 
     func testToolCallIdDecoding() throws {
-        let data = "\"tc-2\"".data(using: .utf8)!
+        let data = Data("\"tc-2\"".utf8)
         let id = try JSONDecoder().decode(ToolCallId.self, from: data)
         XCTAssertEqual(id.value, "tc-2")
     }

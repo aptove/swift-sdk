@@ -13,7 +13,7 @@ internal final class V2TerminalModelTests: XCTestCase {
     }
 
     func testTerminalIdDecoding() throws {
-        let data = "\"term-2\"".data(using: .utf8)!
+        let data = Data("\"term-2\"".utf8)
         let id = try JSONDecoder().decode(TerminalId.self, from: data)
         XCTAssertEqual(id.value, "term-2")
     }

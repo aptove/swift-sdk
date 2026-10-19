@@ -18,13 +18,13 @@ internal final class V2PlanTests: XCTestCase {
     }
 
     func testV2PlanEntryPriorityDecoding() throws {
-        let data = "\"medium\"".data(using: .utf8)!
+        let data = Data("\"medium\"".utf8)
         let priority = try JSONDecoder().decode(V2PlanEntryPriority.self, from: data)
         XCTAssertEqual(priority, .medium)
     }
 
     func testV2PlanEntryPriorityUnknownValue() throws {
-        let data = "\"critical\"".data(using: .utf8)!
+        let data = Data("\"critical\"".utf8)
         let priority = try JSONDecoder().decode(V2PlanEntryPriority.self, from: data)
         XCTAssertEqual(priority.rawValue, "critical")
         XCTAssertNotEqual(priority, .high)
@@ -39,13 +39,13 @@ internal final class V2PlanTests: XCTestCase {
     }
 
     func testV2PlanEntryStatusDecoding() throws {
-        let data = "\"in_progress\"".data(using: .utf8)!
+        let data = Data("\"in_progress\"".utf8)
         let status = try JSONDecoder().decode(V2PlanEntryStatus.self, from: data)
         XCTAssertEqual(status, .inProgress)
     }
 
     func testV2PlanEntryStatusUnknownValue() throws {
-        let data = "\"archived\"".data(using: .utf8)!
+        let data = Data("\"archived\"".utf8)
         let status = try JSONDecoder().decode(V2PlanEntryStatus.self, from: data)
         XCTAssertEqual(status.rawValue, "archived")
     }
@@ -105,7 +105,7 @@ internal final class V2PlanTests: XCTestCase {
     }
 
     func testV2PlanIdDecoding() throws {
-        let data = "\"plan-456\"".data(using: .utf8)!
+        let data = Data("\"plan-456\"".utf8)
         let id = try JSONDecoder().decode(V2PlanId.self, from: data)
         XCTAssertEqual(id.rawValue, "plan-456")
     }

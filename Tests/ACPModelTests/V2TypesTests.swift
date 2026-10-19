@@ -17,13 +17,13 @@ internal final class V2TypesTests: XCTestCase {
     }
 
     func testV2RoleDecoding() throws {
-        let data = "\"user\"".data(using: .utf8)!
+        let data = Data("\"user\"".utf8)
         let role = try JSONDecoder().decode(V2Role.self, from: data)
         XCTAssertEqual(role, .user)
     }
 
     func testV2RoleUnknownValue() throws {
-        let data = "\"moderator\"".data(using: .utf8)!
+        let data = Data("\"moderator\"".utf8)
         let role = try JSONDecoder().decode(V2Role.self, from: data)
         XCTAssertEqual(role.rawValue, "moderator")
         XCTAssertNotEqual(role, .assistant)
@@ -62,13 +62,13 @@ internal final class V2TypesTests: XCTestCase {
     }
 
     func testV2StopReasonDecoding() throws {
-        let data = "\"max_tokens\"".data(using: .utf8)!
+        let data = Data("\"max_tokens\"".utf8)
         let reason = try JSONDecoder().decode(V2StopReason.self, from: data)
         XCTAssertEqual(reason, .maxTokens)
     }
 
     func testV2StopReasonUnknownValue() throws {
-        let data = "\"future_reason\"".data(using: .utf8)!
+        let data = Data("\"future_reason\"".utf8)
         let reason = try JSONDecoder().decode(V2StopReason.self, from: data)
         XCTAssertEqual(reason.rawValue, "future_reason")
         XCTAssertNotEqual(reason, .endTurn)
@@ -99,7 +99,7 @@ internal final class V2TypesTests: XCTestCase {
     }
 
     func testMessageIdDecoding() throws {
-        let data = "\"msg-456\"".data(using: .utf8)!
+        let data = Data("\"msg-456\"".utf8)
         let id = try JSONDecoder().decode(MessageId.self, from: data)
         XCTAssertEqual(id.rawValue, "msg-456")
     }
