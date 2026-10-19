@@ -12,6 +12,9 @@ public struct NewSessionRequest: AcpRequest, Codable, Sendable, Hashable {
     /// MCP servers to configure for this session
     public let mcpServers: [McpServer]
 
+    /// Additional directories to include in the session context
+    public let additionalDirectories: [String]?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -19,10 +22,12 @@ public struct NewSessionRequest: AcpRequest, Codable, Sendable, Hashable {
     public init(
         cwd: String,
         mcpServers: [McpServer],
+        additionalDirectories: [String]? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.cwd = cwd
         self.mcpServers = mcpServers
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
@@ -79,6 +84,9 @@ public struct LoadSessionRequest: AcpRequest, Codable, Sendable, Hashable {
     /// MCP servers to configure for this session
     public let mcpServers: [McpServer]
 
+    /// Additional directories to include in the session context
+    public let additionalDirectories: [String]?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -87,11 +95,13 @@ public struct LoadSessionRequest: AcpRequest, Codable, Sendable, Hashable {
         sessionId: SessionId,
         cwd: String,
         mcpServers: [McpServer],
+        additionalDirectories: [String]? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
         self.cwd = cwd
         self.mcpServers = mcpServers
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }

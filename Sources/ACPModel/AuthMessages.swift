@@ -134,6 +134,40 @@ public struct AgentAuthMethod: Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - Auth EnvVar
+
+/// Describes a single environment variable required for authentication.
+public struct AuthEnvVar: Codable, Sendable, Hashable {
+    /// The environment variable name
+    public let name: String
+
+    /// Optional human-readable label
+    public let label: String?
+
+    /// Whether the value is a secret (should be masked in UI)
+    public let secret: Bool
+
+    /// Whether the variable is optional
+    public let optional: Bool
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        name: String,
+        label: String? = nil,
+        secret: Bool = true,
+        optional: Bool = false,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.name = name
+        self.label = label
+        self.secret = secret
+        self.optional = optional
+        self._meta = _meta
+    }
+}
+
 // MARK: - EnvVar Auth Method
 
 /// Environment variable-based authentication method.
@@ -142,7 +176,7 @@ public struct EnvVarAuthMethod: Codable, Sendable, Hashable {
     public let name: String
     public let description: String?
     public let type: String
-    public let varName: String
+    public let vars: [AuthEnvVar]
     public let link: String?
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -150,7 +184,7 @@ public struct EnvVarAuthMethod: Codable, Sendable, Hashable {
         id: AuthMethodId,
         name: String,
         description: String? = nil,
-        varName: String,
+        vars: [AuthEnvVar],
         link: String? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
@@ -158,7 +192,7 @@ public struct EnvVarAuthMethod: Codable, Sendable, Hashable {
         self.name = name
         self.description = description
         self.type = AuthMethodType.envVar.rawValue
-        self.varName = varName
+        self.vars = vars
         self.link = link
         self._meta = _meta
     }

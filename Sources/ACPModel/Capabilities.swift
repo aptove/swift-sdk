@@ -172,6 +172,36 @@ public struct SessionResumeCapabilities: Codable, Sendable, Hashable {
     }
 }
 
+/// **UNSTABLE**: Capabilities for closing sessions.
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+public struct SessionCloseCapabilities: Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    /// Creates session close capabilities.
+    ///
+    /// - Parameter _meta: Optional metadata
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
+/// **UNSTABLE**: Capabilities for additional directories in sessions.
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+public struct SessionAdditionalDirectoriesCapabilities: Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    /// Creates session additional directories capabilities.
+    ///
+    /// - Parameter _meta: Optional metadata
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
 /// Session capabilities supported by the agent.
 public struct SessionCapabilities: Codable, Sendable, Hashable {
     /// Fork session capability (unstable)
@@ -183,6 +213,12 @@ public struct SessionCapabilities: Codable, Sendable, Hashable {
     /// Resume session capability (unstable)
     public let resume: SessionResumeCapabilities?
 
+    /// Close session capability (unstable)
+    public let close: SessionCloseCapabilities?
+
+    /// Additional directories capability (unstable)
+    public let additionalDirectories: SessionAdditionalDirectoriesCapabilities?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -192,16 +228,22 @@ public struct SessionCapabilities: Codable, Sendable, Hashable {
     ///   - fork: Fork capability
     ///   - list: List capability
     ///   - resume: Resume capability
+    ///   - close: Close capability
+    ///   - additionalDirectories: Additional directories capability
     ///   - _meta: Optional metadata
     public init(
         fork: SessionForkCapabilities? = nil,
         list: SessionListCapabilities? = nil,
         resume: SessionResumeCapabilities? = nil,
+        close: SessionCloseCapabilities? = nil,
+        additionalDirectories: SessionAdditionalDirectoriesCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.fork = fork
         self.list = list
         self.resume = resume
+        self.close = close
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
@@ -222,6 +264,12 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Authentication capabilities
     public let auth: AuthCapabilities?
 
+    /// **UNSTABLE** - NES (Next Edit Suggestions) capabilities
+    public let nes: ClientNesCapabilities?
+
+    /// **UNSTABLE** - Position encodings supported by the client
+    public let positionEncodings: [NesPositionEncodingKind]?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -231,16 +279,22 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     ///   - fs: File system capabilities
     ///   - terminal: Terminal support
     ///   - auth: Authentication capabilities (unstable)
+    ///   - nes: NES capabilities (unstable)
+    ///   - positionEncodings: Position encodings supported (unstable)
     ///   - _meta: Optional metadata
     public init(
         fs: FileSystemCapability? = nil,
         terminal: Bool = false,
         auth: AuthCapabilities? = nil,
+        nes: ClientNesCapabilities? = nil,
+        positionEncodings: [NesPositionEncodingKind]? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.fs = fs
         self.terminal = terminal
         self.auth = auth
+        self.nes = nes
+        self.positionEncodings = positionEncodings
         self._meta = _meta
     }
 }
@@ -304,6 +358,12 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Authentication-related capabilities
     public let auth: AgentAuthCapabilities?
 
+    /// **UNSTABLE** - NES (Next Edit Suggestions) capabilities
+    public let nes: NesCapabilities?
+
+    /// **UNSTABLE** - Position encoding preferred by the agent
+    public let positionEncoding: NesPositionEncodingKind?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -315,6 +375,8 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     ///   - mcpCapabilities: MCP capabilities
     ///   - sessionCapabilities: Session capabilities
     ///   - auth: Authentication capabilities (unstable)
+    ///   - nes: NES capabilities (unstable)
+    ///   - positionEncoding: Position encoding (unstable)
     ///   - _meta: Optional metadata
     public init(
         loadSession: Bool = false,
@@ -322,6 +384,8 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         mcpCapabilities: McpCapabilities? = nil,
         sessionCapabilities: SessionCapabilities? = nil,
         auth: AgentAuthCapabilities? = nil,
+        nes: NesCapabilities? = nil,
+        positionEncoding: NesPositionEncodingKind? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.loadSession = loadSession
@@ -329,6 +393,8 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.mcpCapabilities = mcpCapabilities
         self.sessionCapabilities = sessionCapabilities
         self.auth = auth
+        self.nes = nes
+        self.positionEncoding = positionEncoding
         self._meta = _meta
     }
 
@@ -340,10 +406,12 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.mcpCapabilities = try container.decodeIfPresent(McpCapabilities.self, forKey: .mcpCapabilities)
         self.sessionCapabilities = try container.decodeIfPresent(SessionCapabilities.self, forKey: .sessionCapabilities)
         self.auth = try container.decodeIfPresent(AgentAuthCapabilities.self, forKey: .auth)
+        self.nes = try container.decodeIfPresent(NesCapabilities.self, forKey: .nes)
+        self.positionEncoding = try container.decodeIfPresent(NesPositionEncodingKind.self, forKey: .positionEncoding)
         self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, _meta
+        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, nes, positionEncoding, _meta
     }
 }

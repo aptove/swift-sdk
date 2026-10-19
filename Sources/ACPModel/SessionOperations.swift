@@ -113,6 +113,9 @@ public struct ForkSessionRequest: Codable, Sendable, Hashable {
     /// List of MCP servers to connect to for this session.
     public let mcpServers: [McpServer]?
 
+    /// Additional directories to include in the session context.
+    public let additionalDirectories: [String]?
+
     /// Optional metadata for protocol extensibility.
     public let _meta: JsonValue? // swiftlint:disable:this identifier_name
 
@@ -122,16 +125,19 @@ public struct ForkSessionRequest: Codable, Sendable, Hashable {
     ///   - sessionId: The ID of the session to fork
     ///   - cwd: The working directory for the new session
     ///   - mcpServers: Optional list of MCP servers to connect
+    ///   - additionalDirectories: Optional additional directories
     ///   - _meta: Optional metadata for protocol extensibility
     public init(
         sessionId: SessionId,
         cwd: String,
         mcpServers: [McpServer]? = nil,
+        additionalDirectories: [String]? = nil,
         _meta: JsonValue? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
         self.cwd = cwd
         self.mcpServers = mcpServers
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
@@ -208,6 +214,9 @@ public struct ResumeSessionRequest: Codable, Sendable, Hashable {
     /// List of MCP servers to connect to for this session.
     public let mcpServers: [McpServer]?
 
+    /// Additional directories to include in the session context.
+    public let additionalDirectories: [String]?
+
     /// Optional metadata for protocol extensibility.
     public let _meta: JsonValue? // swiftlint:disable:this identifier_name
 
@@ -217,16 +226,19 @@ public struct ResumeSessionRequest: Codable, Sendable, Hashable {
     ///   - sessionId: The ID of the session to resume
     ///   - cwd: The working directory for the session
     ///   - mcpServers: Optional list of MCP servers to connect
+    ///   - additionalDirectories: Optional additional directories
     ///   - _meta: Optional metadata for protocol extensibility
     public init(
         sessionId: SessionId,
         cwd: String,
         mcpServers: [McpServer]? = nil,
+        additionalDirectories: [String]? = nil,
         _meta: JsonValue? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
         self.cwd = cwd
         self.mcpServers = mcpServers
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
@@ -264,6 +276,51 @@ public struct ResumeSessionResponse: Codable, Sendable, Hashable {
         self.configOptions = configOptions
         self.models = models
         self.modes = modes
+        self._meta = _meta
+    }
+}
+
+// MARK: - Close Session
+
+/// Request to close an existing session.
+///
+/// Only available if the Agent supports the `session.close` capability.
+///
+/// - Note: This is an **UNSTABLE** API that may change without notice.
+@available(*, message: "Unstable API - may change without notice")
+public struct CloseSessionRequest: Codable, Sendable, Hashable {
+    /// The ID of the session to close.
+    public let sessionId: SessionId
+
+    /// Optional metadata for protocol extensibility.
+    public let _meta: JsonValue? // swiftlint:disable:this identifier_name
+
+    /// Creates a close session request.
+    ///
+    /// - Parameters:
+    ///   - sessionId: The ID of the session to close
+    ///   - _meta: Optional metadata for protocol extensibility
+    public init(
+        sessionId: SessionId,
+        _meta: JsonValue? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.sessionId = sessionId
+        self._meta = _meta
+    }
+}
+
+/// Response from closing a session.
+///
+/// - Note: This is an **UNSTABLE** API that may change without notice.
+@available(*, message: "Unstable API - may change without notice")
+public struct CloseSessionResponse: Codable, Sendable, Hashable {
+    /// Optional metadata for protocol extensibility.
+    public let _meta: JsonValue? // swiftlint:disable:this identifier_name
+
+    /// Creates a close session response.
+    ///
+    /// - Parameter _meta: Optional metadata for protocol extensibility
+    public init(_meta: JsonValue? = nil) { // swiftlint:disable:this identifier_name
         self._meta = _meta
     }
 }

@@ -80,6 +80,16 @@ public protocol ClientSession: Sendable {
     /// The final event will have stopReason = .cancelled.
     func cancel() async throws
 
+    /// **UNSTABLE** - Close the session.
+    ///
+    /// This capability is not part of the spec yet, and may be removed or changed at any point.
+    /// Only available if the agent supports the `session.close` capability.
+    ///
+    /// - Returns: Response confirming the session was closed
+    /// - Throws: Error if close not supported or fails
+    @available(*, message: "Unstable API - may change without notice")
+    func close() async throws -> CloseSessionResponse
+
     /// Change the session mode.
     ///
     /// - Parameters:

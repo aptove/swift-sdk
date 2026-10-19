@@ -159,6 +159,22 @@ public actor AgentConnection {
         await proto.onRequest(method: "logout") { [weak self] request in
             try await self?.handleLogout(request) ?? .null
         }
+
+        await proto.onRequest(method: "session/close") { [weak self] request in
+            try await self?.handleCloseSession(request) ?? .null
+        }
+
+        await proto.onRequest(method: "nes/start") { [weak self] request in
+            try await self?.handleStartNes(request) ?? .null
+        }
+
+        await proto.onRequest(method: "nes/close") { [weak self] request in
+            try await self?.handleCloseNes(request) ?? .null
+        }
+
+        await proto.onRequest(method: "nes/suggest") { [weak self] request in
+            try await self?.handleSuggestNes(request) ?? .null
+        }
     }
 
     /// Wait until the connection is complete (transport closes or error).
@@ -281,6 +297,34 @@ public actor AgentConnection {
     private func handleLogout(_ request: JsonRpcRequest) async throws -> JsonValue {
         let logoutRequest: LogoutRequest = try decodeParams(request.params)
         let response = try await agent.logout(request: logoutRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle close session request (unstable API).
+    private func handleCloseSession(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let closeRequest: CloseSessionRequest = try decodeParams(request.params)
+        let response = try await agent.closeSession(request: closeRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle start NES request (unstable API).
+    private func handleStartNes(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let nesRequest: StartNesRequest = try decodeParams(request.params)
+        let response = try await agent.startNes(request: nesRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle close NES request (unstable API).
+    private func handleCloseNes(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let nesRequest: CloseNesRequest = try decodeParams(request.params)
+        let response = try await agent.closeNes(request: nesRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle suggest NES request (unstable API).
+    private func handleSuggestNes(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let nesRequest: SuggestNesRequest = try decodeParams(request.params)
+        let response = try await agent.suggestNes(request: nesRequest)
         return try encodeResult(response)
     }
 

@@ -156,6 +156,43 @@ public protocol Agent: Sendable {
     /// - Returns: Response confirming the logout
     /// - Throws: Error if the request fails
     func logout(request: LogoutRequest) async throws -> LogoutResponse
+
+    /// **UNSTABLE** - Close an existing session.
+    ///
+    /// Default implementation throws not implemented error.
+    /// Requires `sessionCapabilities.close` capability to be advertised.
+    ///
+    /// - Parameter request: The close session request
+    /// - Returns: Response confirming the session was closed
+    /// - Throws: Error if the request fails
+    func closeSession(request: CloseSessionRequest) async throws -> CloseSessionResponse
+
+    /// **UNSTABLE** - Start a NES (Next Edit Suggestions) session.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The start NES request
+    /// - Returns: Response with NES session details
+    /// - Throws: Error if the request fails
+    func startNes(request: StartNesRequest) async throws -> StartNesResponse
+
+    /// **UNSTABLE** - Close a NES session.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The close NES request
+    /// - Returns: Response confirming the NES session was closed
+    /// - Throws: Error if the request fails
+    func closeNes(request: CloseNesRequest) async throws -> CloseNesResponse
+
+    /// **UNSTABLE** - Request NES suggestions.
+    ///
+    /// Default implementation throws not implemented error.
+    ///
+    /// - Parameter request: The suggest NES request
+    /// - Returns: Response with suggestions
+    /// - Throws: Error if the request fails
+    func suggestNes(request: SuggestNesRequest) async throws -> SuggestNesResponse
 }
 
 // MARK: - Default Implementations
@@ -214,6 +251,26 @@ public extension Agent {
     /// Default logout implementation throws not implemented error.
     func logout(request: LogoutRequest) async throws -> LogoutResponse {
         throw AgentError.notImplemented(method: "logout")
+    }
+
+    /// Default close session implementation throws not implemented error.
+    func closeSession(request: CloseSessionRequest) async throws -> CloseSessionResponse {
+        throw AgentError.notImplemented(method: "closeSession")
+    }
+
+    /// Default start NES implementation throws not implemented error.
+    func startNes(request: StartNesRequest) async throws -> StartNesResponse {
+        throw AgentError.notImplemented(method: "startNes")
+    }
+
+    /// Default close NES implementation throws not implemented error.
+    func closeNes(request: CloseNesRequest) async throws -> CloseNesResponse {
+        throw AgentError.notImplemented(method: "closeNes")
+    }
+
+    /// Default suggest NES implementation throws not implemented error.
+    func suggestNes(request: SuggestNesRequest) async throws -> SuggestNesResponse {
+        throw AgentError.notImplemented(method: "suggestNes")
     }
 }
 

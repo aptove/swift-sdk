@@ -29,6 +29,9 @@ public struct SessionInfo: Codable, Sendable, Hashable {
     /// ISO 8601 timestamp of when this session was last updated.
     public let updatedAt: String?
 
+    /// Additional directories included in the session context.
+    public let additionalDirectories: [String]?
+
     /// Optional metadata for protocol extensibility.
     public let _meta: JsonValue? // swiftlint:disable:this identifier_name
 
@@ -39,18 +42,21 @@ public struct SessionInfo: Codable, Sendable, Hashable {
     ///   - cwd: The working directory for this session
     ///   - title: Optional human-readable title
     ///   - updatedAt: Optional ISO 8601 timestamp of last update
+    ///   - additionalDirectories: Optional additional directories
     ///   - _meta: Optional metadata for protocol extensibility
     public init(
         sessionId: SessionId,
         cwd: String,
         title: String? = nil,
         updatedAt: String? = nil,
+        additionalDirectories: [String]? = nil,
         _meta: JsonValue? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
         self.cwd = cwd
         self.title = title
         self.updatedAt = updatedAt
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
