@@ -210,6 +210,36 @@ internal final class RemoteClientOperations: AgentContext, @unchecked Sendable {
         return try decodeResult(response.result, as: ReleaseTerminalResponse.self)
     }
 
+    // MARK: - Elicitation Operations
+
+    public func createElicitation(_ request: CreateElicitationRequest) async throws -> CreateElicitationResponse {
+        guard let elicitation = clientCapabilities.elicitation else {
+            throw AgentContextError.capabilityNotSupported("elicitation")
+        }
+        switch request.mode {
+        case .form:
+            guard elicitation.supportsForm else {
+                throw AgentContextError.capabilityNotSupported("elicitation.form")
+            }
+        case .url:
+            guard elicitation.supportsUrl else {
+                throw AgentContextError.capabilityNotSupported("elicitation.url")
+            }
+        }
+        let response = try await protocolLayer.sendRequest(
+            method: "elicitation/create",
+            params: request
+        )
+        return try decodeResult(response.result, as: CreateElicitationResponse.self)
+    }
+
+    public func completeElicitation(_ notification: CompleteElicitationNotification) async throws {
+        try await protocolLayer.sendNotification(
+            method: "elicitation/complete",
+            params: notification
+        )
+    }
+
     // MARK: - Helper Methods
 
     private func decodeResult<T: Decodable>(_ result: JsonValue?, as type: T.Type) throws -> T {

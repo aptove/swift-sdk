@@ -270,6 +270,9 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Position encodings supported by the client
     public let positionEncodings: [NesPositionEncodingKind]?
 
+    /// **UNSTABLE** - Elicitation capabilities
+    public let elicitation: ElicitationCapabilities?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -281,6 +284,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     ///   - auth: Authentication capabilities (unstable)
     ///   - nes: NES capabilities (unstable)
     ///   - positionEncodings: Position encodings supported (unstable)
+    ///   - elicitation: Elicitation capabilities (unstable)
     ///   - _meta: Optional metadata
     public init(
         fs: FileSystemCapability? = nil,
@@ -288,6 +292,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
         auth: AuthCapabilities? = nil,
         nes: ClientNesCapabilities? = nil,
         positionEncodings: [NesPositionEncodingKind]? = nil,
+        elicitation: ElicitationCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.fs = fs
@@ -295,6 +300,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
         self.auth = auth
         self.nes = nes
         self.positionEncodings = positionEncodings
+        self.elicitation = elicitation
         self._meta = _meta
     }
 }

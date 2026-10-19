@@ -161,6 +161,23 @@ public protocol AgentContext: Sendable {
         terminalId: String,
         meta: MetaField?
     ) async throws -> ReleaseTerminalResponse
+
+    // MARK: - Elicitation Operations
+
+    /// **UNSTABLE** - Create an elicitation request to gather user input.
+    ///
+    /// Requires `elicitation` capability on the client.
+    ///
+    /// - Parameter request: The elicitation request
+    /// - Returns: The user's response to the elicitation
+    /// - Throws: Error if client doesn't support elicitation
+    func createElicitation(_ request: CreateElicitationRequest) async throws -> CreateElicitationResponse
+
+    /// **UNSTABLE** - Notify the client that a URL-based elicitation is complete.
+    ///
+    /// - Parameter notification: The completion notification
+    /// - Throws: Error if sending fails
+    func completeElicitation(_ notification: CompleteElicitationNotification) async throws
 }
 
 // MARK: - Convenience Extensions
