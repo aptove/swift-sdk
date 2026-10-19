@@ -155,6 +155,10 @@ public actor AgentConnection {
         await proto.onRequest(method: "session/set_config_option") { [weak self] request in
             try await self?.handleSetSessionConfigOption(request) ?? .null
         }
+
+        await proto.onRequest(method: "logout") { [weak self] request in
+            try await self?.handleLogout(request) ?? .null
+        }
     }
 
     /// Wait until the connection is complete (transport closes or error).
@@ -270,6 +274,13 @@ public actor AgentConnection {
     private func handleSetSessionConfigOption(_ request: JsonRpcRequest) async throws -> JsonValue {
         let configRequest: SetSessionConfigOptionRequest = try decodeParams(request.params)
         let response = try await agent.setSessionConfigOption(request: configRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle logout request (unstable API).
+    private func handleLogout(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let logoutRequest: LogoutRequest = try decodeParams(request.params)
+        let response = try await agent.logout(request: logoutRequest)
         return try encodeResult(response)
     }
 

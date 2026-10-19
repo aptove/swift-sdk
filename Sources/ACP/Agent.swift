@@ -145,6 +145,17 @@ public protocol Agent: Sendable {
     /// - Returns: Response with updated config options
     /// - Throws: Error if the request fails
     func setSessionConfigOption(request: SetSessionConfigOptionRequest) async throws -> SetSessionConfigOptionResponse
+
+    /// **UNSTABLE** - Logout the current user.
+    ///
+    /// Terminates the current authenticated session.
+    /// Default implementation throws not implemented error.
+    /// Requires `auth.logout` capability to be advertised.
+    ///
+    /// - Parameter request: The logout request
+    /// - Returns: Response confirming the logout
+    /// - Throws: Error if the request fails
+    func logout(request: LogoutRequest) async throws -> LogoutResponse
 }
 
 // MARK: - Default Implementations
@@ -198,6 +209,11 @@ public extension Agent {
     /// Default set session config option implementation throws not implemented error.
     func setSessionConfigOption(request: SetSessionConfigOptionRequest) async throws -> SetSessionConfigOptionResponse {
         throw AgentError.notImplemented(method: "setSessionConfigOption")
+    }
+
+    /// Default logout implementation throws not implemented error.
+    func logout(request: LogoutRequest) async throws -> LogoutResponse {
+        throw AgentError.notImplemented(method: "logout")
     }
 }
 

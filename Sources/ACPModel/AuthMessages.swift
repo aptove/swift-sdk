@@ -265,6 +265,40 @@ public struct AuthenticateResponse: AcpResponse, Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - Logout Request
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Request parameters for the logout method.
+///
+/// Terminates the current authenticated session.
+public struct LogoutRequest: AcpRequest, Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
+// MARK: - Logout Response
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Response to the `logout` method.
+public struct LogoutResponse: AcpResponse, Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
 // MARK: - Auth Method ID
 
 /// A unique identifier for an authentication method.

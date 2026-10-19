@@ -245,6 +245,43 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     }
 }
 
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Logout capabilities supported by the agent.
+///
+/// Supplying an instance means the agent supports the logout method.
+public struct LogoutCapabilities: Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Authentication-related capabilities supported by the agent.
+public struct AgentAuthCapabilities: Codable, Sendable, Hashable {
+    /// Whether the agent supports the logout method
+    public let logout: LogoutCapabilities?
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        logout: LogoutCapabilities? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.logout = logout
+        self._meta = _meta
+    }
+}
+
 /// Capabilities supported by the agent.
 ///
 /// Advertised during initialization to inform the client about
@@ -264,6 +301,9 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     /// Session management capabilities
     public let sessionCapabilities: SessionCapabilities?
 
+    /// **UNSTABLE** - Authentication-related capabilities
+    public let auth: AgentAuthCapabilities?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -274,18 +314,21 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     ///   - promptCapabilities: Prompt capabilities
     ///   - mcpCapabilities: MCP capabilities
     ///   - sessionCapabilities: Session capabilities
+    ///   - auth: Authentication capabilities (unstable)
     ///   - _meta: Optional metadata
     public init(
         loadSession: Bool = false,
         promptCapabilities: PromptCapabilities = PromptCapabilities(),
         mcpCapabilities: McpCapabilities? = nil,
         sessionCapabilities: SessionCapabilities? = nil,
+        auth: AgentAuthCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.loadSession = loadSession
         self.promptCapabilities = promptCapabilities
         self.mcpCapabilities = mcpCapabilities
         self.sessionCapabilities = sessionCapabilities
+        self.auth = auth
         self._meta = _meta
     }
 
@@ -296,10 +339,11 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.promptCapabilities = try container.decodeIfPresent(PromptCapabilities.self, forKey: .promptCapabilities) ?? PromptCapabilities()
         self.mcpCapabilities = try container.decodeIfPresent(McpCapabilities.self, forKey: .mcpCapabilities)
         self.sessionCapabilities = try container.decodeIfPresent(SessionCapabilities.self, forKey: .sessionCapabilities)
+        self.auth = try container.decodeIfPresent(AgentAuthCapabilities.self, forKey: .auth)
         self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, _meta
+        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, _meta
     }
 }
