@@ -168,6 +168,50 @@ public struct PromptRequest: AcpRequest, Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - Usage
+
+/// **UNSTABLE** - Token usage for a prompt turn.
+public struct Usage: Codable, Sendable, Hashable {
+    /// Number of input tokens
+    public let inputTokens: Int64
+
+    /// Number of output tokens
+    public let outputTokens: Int64
+
+    /// Total token count
+    public let totalTokens: Int64
+
+    /// Number of thought/reasoning tokens
+    public let thoughtTokens: Int64?
+
+    /// Number of cached read tokens
+    public let cachedReadTokens: Int64?
+
+    /// Number of cached write tokens
+    public let cachedWriteTokens: Int64?
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        inputTokens: Int64,
+        outputTokens: Int64,
+        totalTokens: Int64,
+        thoughtTokens: Int64? = nil,
+        cachedReadTokens: Int64? = nil,
+        cachedWriteTokens: Int64? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.totalTokens = totalTokens
+        self.thoughtTokens = thoughtTokens
+        self.cachedReadTokens = cachedReadTokens
+        self.cachedWriteTokens = cachedWriteTokens
+        self._meta = _meta
+    }
+}
+
 /// Reasons why an agent stops processing a prompt turn.
 ///
 /// See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
@@ -198,6 +242,9 @@ public struct PromptResponse: AcpResponse, Codable, Sendable, Hashable {
     /// **UNSTABLE** - Echo of the client's messageId from the PromptRequest, if provided
     public let userMessageId: MessageId?
 
+    /// **UNSTABLE** - Token usage for this prompt turn
+    public let usage: Usage?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -205,10 +252,12 @@ public struct PromptResponse: AcpResponse, Codable, Sendable, Hashable {
     public init(
         stopReason: StopReason,
         userMessageId: MessageId? = nil,
+        usage: Usage? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.stopReason = stopReason
         self.userMessageId = userMessageId
+        self.usage = usage
         self._meta = _meta
     }
 }
