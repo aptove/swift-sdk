@@ -97,47 +97,38 @@ internal final class NotificationsTests: XCTestCase {
     // MARK: - CancelRequestNotification Tests
 
     func testCancelRequestNotificationEncoding() throws {
-        let notification = CancelRequestNotification(
-            requestId: RequestId.int(42),
-            message: "User cancelled"
-        )
+        let notification = CancelRequestNotification(requestId: RequestId.int(42))
 
         let data = try JSONEncoder().encode(notification)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
         XCTAssertEqual(json?["requestId"] as? Int, 42)
-        XCTAssertEqual(json?["message"] as? String, "User cancelled")
+        XCTAssertNil(json?["message"])
     }
 
     func testCancelRequestNotificationDecoding() throws {
         let json = """
-        {"requestId": 123, "message": "Timeout"}
+        {"requestId": 123}
         """
 
         let notification = try JSONDecoder().decode(CancelRequestNotification.self, from: Data(json.utf8))
 
         XCTAssertEqual(notification.requestId, .int(123))
-        XCTAssertEqual(notification.message, "Timeout")
     }
 
     func testCancelRequestNotificationMinimal() throws {
         let notification = CancelRequestNotification(requestId: RequestId.string("req-1"))
 
-        XCTAssertNil(notification.message)
         XCTAssertNil(notification._meta)
     }
 
     func testCancelRequestNotificationRoundTrip() throws {
-        let notification = CancelRequestNotification(
-            requestId: RequestId.int(99),
-            message: "Aborted"
-        )
+        let notification = CancelRequestNotification(requestId: RequestId.int(99))
 
         let data = try JSONEncoder().encode(notification)
         let decoded = try JSONDecoder().decode(CancelRequestNotification.self, from: data)
 
         XCTAssertEqual(decoded.requestId, notification.requestId)
-        XCTAssertEqual(decoded.message, notification.message)
     }
 
     // MARK: - Hashable Tests

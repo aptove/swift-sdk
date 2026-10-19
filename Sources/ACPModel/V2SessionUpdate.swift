@@ -578,6 +578,7 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
 
     private enum DiscKey: String, CodingKey { case sessionUpdate }
 
+    // swiftlint:disable:next cyclomatic_complexity
     public init(from decoder: Decoder) throws {
         let discContainer = try decoder.container(keyedBy: DiscKey.self)
         let typeStr = try discContainer.decode(String.self, forKey: .sessionUpdate)
@@ -628,6 +629,7 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func encode(to encoder: Encoder) throws {
         var discContainer = encoder.container(keyedBy: DiscKey.self)
         switch self {
