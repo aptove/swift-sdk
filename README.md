@@ -11,7 +11,7 @@
 
 A Swift implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) for building AI agent clients and servers. Ship ACP-compliant agents, clients, and transports for iOS apps, macOS tools, CLI utilities, or any Swift-based host.
 
-> **Note:** This SDK is a Swift port of the [ACP Kotlin SDK](https://github.com/agentclientprotocol/kotlin-sdk) (v0.15.2), providing equivalent functionality with Swift-native APIs and idioms.
+> **Note:** This SDK is a Swift port of the [ACP Kotlin SDK](https://github.com/agentclientprotocol/kotlin-sdk) (v0.33.0), providing equivalent functionality with Swift-native APIs and idioms.
 
 ## What is ACP Swift SDK?
 
@@ -438,4 +438,4 @@ Distributed under the Apache License 2.0. See [`LICENSE`](LICENSE) for details.
 
 ---
 
-*This SDK maintains feature parity with the [ACP Kotlin SDK](https://github.com/agentclientprotocol/kotlin-sdk) v0.15.2.*
+*This SDK maintains feature parity with the [ACP Kotlin SDK](https://github.com/agentclientprotocol/kotlin-sdk) v0.33.0.*
