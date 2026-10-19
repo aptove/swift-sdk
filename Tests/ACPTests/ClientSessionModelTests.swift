@@ -77,6 +77,10 @@ internal final class ClientSessionModelTests: XCTestCase {
             // No-op for tests
         }
 
+        func close() async throws -> CloseSessionResponse {
+            return CloseSessionResponse()
+        }
+
         func setMode(_ modeId: SessionModeId, meta: MetaField?) async throws -> SetSessionModeResponse {
             setModeCalls.append((modeId, meta))
             _currentModeId = modeId
@@ -94,13 +98,19 @@ internal final class ClientSessionModelTests: XCTestCase {
 
         func setConfigOption(
             _ configId: SessionConfigId,
-            value: SessionConfigValueId,
+            value: SessionConfigOptionValue,
             meta: MetaField?
         ) async throws -> SetSessionConfigOptionResponse {
             guard configOptionsSupported else {
                 throw ClientError.notImplemented("Config options not supported")
             }
-            setConfigOptionCalls.append(SetConfigOptionCall(configId: configId, value: value, meta: meta))
+            let valueId: SessionConfigValueId
+            if case .string(let s) = value {
+                valueId = SessionConfigValueId(value: s)
+            } else {
+                valueId = SessionConfigValueId(value: "")
+            }
+            setConfigOptionCalls.append(SetConfigOptionCall(configId: configId, value: valueId, meta: meta))
             return SetSessionConfigOptionResponse(configOptions: _configOptions)
         }
 
@@ -249,7 +259,7 @@ internal final class ClientSessionModelTests: XCTestCase {
         session.configureConfigOptions(supported: true, options: [])
 
         let configId = SessionConfigId(value: "temperature")
-        let value = SessionConfigValueId(value: "high")
+        let value = SessionConfigOptionValue.string("high")
         let meta = MetaField(additionalData: ["reason": .string("user preference")])
 
         _ = try await session.setConfigOption(configId, value: value, meta: meta)
@@ -265,7 +275,7 @@ internal final class ClientSessionModelTests: XCTestCase {
         session.configureConfigOptions(supported: true, options: [])
 
         let configId = SessionConfigId(value: "output-format")
-        let value = SessionConfigValueId(value: "json")
+        let value = SessionConfigOptionValue.string("json")
 
         // Use convenience method without metadata
         _ = try await session.setConfigOption(configId, value: value)
@@ -283,7 +293,7 @@ internal final class ClientSessionModelTests: XCTestCase {
         do {
             _ = try await session.setConfigOption(
                 SessionConfigId(value: "any"),
-                value: SessionConfigValueId(value: "any")
+                value: SessionConfigOptionValue.string("any")
             )
             XCTFail("Expected error when config options not supported")
         } catch {
