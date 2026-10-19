@@ -85,6 +85,7 @@ public struct StringPropertySchema: Codable, Sendable, Hashable {
     public let `default`: String?
     public let enumValues: [String]?
     public let oneOf: [EnumOption]?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         title: String? = nil,
@@ -95,7 +96,8 @@ public struct StringPropertySchema: Codable, Sendable, Hashable {
         format: StringFormat? = nil,
         default defaultValue: String? = nil,
         enumValues: [String]? = nil,
-        oneOf: [EnumOption]? = nil
+        oneOf: [EnumOption]? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.title = title
         self.description = description
@@ -106,6 +108,7 @@ public struct StringPropertySchema: Codable, Sendable, Hashable {
         self.default = defaultValue
         self.enumValues = enumValues
         self.oneOf = oneOf
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -113,6 +116,7 @@ public struct StringPropertySchema: Codable, Sendable, Hashable {
         case `default`
         case enumValues = "enum"
         case oneOf
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 
@@ -123,23 +127,27 @@ public struct NumberPropertySchema: Codable, Sendable, Hashable {
     public let minimum: Double?
     public let maximum: Double?
     public let `default`: Double?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         title: String? = nil,
         description: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
-        default defaultValue: Double? = nil
+        default defaultValue: Double? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.title = title
         self.description = description
         self.minimum = minimum
         self.maximum = maximum
         self.default = defaultValue
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case title, description, minimum, maximum, `default`
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 
@@ -150,23 +158,27 @@ public struct IntegerPropertySchema: Codable, Sendable, Hashable {
     public let minimum: Int64?
     public let maximum: Int64?
     public let `default`: Int64?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         title: String? = nil,
         description: String? = nil,
         minimum: Int64? = nil,
         maximum: Int64? = nil,
-        default defaultValue: Int64? = nil
+        default defaultValue: Int64? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.title = title
         self.description = description
         self.minimum = minimum
         self.maximum = maximum
         self.default = defaultValue
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case title, description, minimum, maximum, `default`
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 
@@ -175,19 +187,23 @@ public struct BooleanPropertySchema: Codable, Sendable, Hashable {
     public let title: String?
     public let description: String?
     public let `default`: Bool?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         title: String? = nil,
         description: String? = nil,
-        default defaultValue: Bool? = nil
+        default defaultValue: Bool? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.title = title
         self.description = description
         self.default = defaultValue
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case title, description, `default`
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 
@@ -258,6 +274,7 @@ public struct MultiSelectPropertySchema: Codable, Sendable, Hashable {
     public let maxItems: Int64?
     public let items: MultiSelectItems
     public let `default`: [String]?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         title: String? = nil,
@@ -265,7 +282,8 @@ public struct MultiSelectPropertySchema: Codable, Sendable, Hashable {
         minItems: Int64? = nil,
         maxItems: Int64? = nil,
         items: MultiSelectItems,
-        default defaultValue: [String]? = nil
+        default defaultValue: [String]? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.title = title
         self.description = description
@@ -273,10 +291,12 @@ public struct MultiSelectPropertySchema: Codable, Sendable, Hashable {
         self.maxItems = maxItems
         self.items = items
         self.default = defaultValue
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case title, description, minItems, maxItems, items, `default`
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 
