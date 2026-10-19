@@ -17,6 +17,12 @@ public struct ProtocolVersion: Hashable, Codable, Sendable {
     /// The current ACP protocol version supported by this SDK.
     public static let current = ProtocolVersion(version: 1)
 
+    /// **UNSTABLE** - Protocol version 2 (draft; not included in supported versions).
+    ///
+    /// Speaking v2 is always an explicit choice. `current` deliberately stays at 1 and v2 is
+    /// absent from any supported-versions list.
+    public static let v2 = ProtocolVersion(version: 2)
+
     // MARK: - Codable
 
     public init(from decoder: Decoder) throws {
