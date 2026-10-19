@@ -349,35 +349,36 @@ Run samples from the `swift-sdk` directory.
 ## Capabilities
 
 ### Protocol
-- ✅ Full ACP protocol coverage with JSON-RPC framing
+- ✅ Full ACP V1 and V2 protocol coverage with JSON-RPC framing
 - ✅ Typed request/response wrappers for both V1 and V2
 - ✅ Message correlation, error propagation
-- ✅ V2 protocol: `session/new`, `session/prompt`, `session/update`, `session/set_config_option`
+- ✅ V2: `session/new`, `session/prompt`, `session/update`, `session/set_config_option`
 - ✅ V2 protocol version negotiation (client tries V2, falls back to V1)
-- ✅ Protocol version: **2025-02-07**
 
 ### Agent runtime
 - ✅ Capability negotiation and session lifecycle
 - ✅ Prompt streaming with session updates
 - ✅ Tool-call progress, execution plans, permission requests
 - ✅ File-system operations via client callbacks
+- ✅ Terminal operations via client callbacks
 
 ### Client runtime
 - ✅ Capability advertising and lifecycle management
-- ✅ File-system helpers and permission handling
+- ✅ File-system and terminal helpers
+- ✅ Permission request handling
 - ✅ Session update listeners
 - ✅ Process spawning for external agents
 
 ### Session Operations
 - ✅ Create session (`session/new`)
 - ✅ Send prompts (`session/prompt`)
-- ✅ Cancel requests (`session/cancel`)
-- ✅ Delete session (`session/delete`)
-- ✅ Load session (with message history)
-- ✅ Session configuration (get/set)
-- ⚠️ List sessions (unstable)
-- ⚠️ Fork session (unstable)
-- ⚠️ Resume session (unstable)
+- ✅ Cancel prompt (`session/cancel`)
+- ✅ Load session with message history (`session/load`)
+- ✅ Set session config option (`session/set_config_option`) ⚠️ unstable
+- ✅ List sessions (`session/list`) ⚠️ unstable
+- ✅ Fork session (`session/fork`) ⚠️ unstable
+- ✅ Resume session (`session/resume`) ⚠️ unstable
+- ⚠️ Delete session (`session/delete`) — V2 model types only, no runtime helper yet
 
 ### Transports
 - ✅ STDIO transport (pipes, file handles)
@@ -386,6 +387,8 @@ Run samples from the `swift-sdk` directory.
 
 ## Architecture
 
+### V1 — high-level connection layer
+
 ```
 ┌─────────────────┐    ┌─────────────────┐
 │   Agent App     │    │   Client App    │
@@ -393,14 +396,31 @@ Run samples from the `swift-sdk` directory.
 ├─────────────────┤    ├─────────────────┤
 │ AgentConnection │    │ClientConnection │
 ├─────────────────┤    ├─────────────────┤
-│    Protocol     │    │    Protocol     │
+│   ACPProtocol   │    │   ACPProtocol   │
 ├─────────────────┤    ├─────────────────┤
 │   Transport     │◄──►│   Transport     │
 │ (Stdio, WebSkt) │    │ (Stdio, WebSkt) │
 └─────────────────┘    └─────────────────┘
 ```
 
-**Lifecycle overview:** Clients establish a transport, call `connect()` to negotiate capabilities, create sessions, send prompts, and react to streamed updates (tool calls, permissions, status). Agents implement the mirror of these methods, delegating file and permission requests back to the client when required.
+**V1 lifecycle:** Clients call `connect()` to negotiate capabilities, `createSession()`, `prompt()`, and react to streamed updates (tool calls, permissions, file ops). Agents implement the mirror of these methods.
+
+### V2 — direct protocol layer
+
+V2 has no high-level `AgentConnection`/`ClientConnection` wrappers yet. Both sides use `ACPProtocol` directly, registering typed handlers and sending notifications manually:
+
+```
+┌──────────────────────┐    ┌──────────────────────┐
+│ Agent (V2 handlers)  │    │  Client (V2 requests) │
+├──────────────────────┤    ├──────────────────────┤
+│     ACPProtocol      │    │     ACPProtocol       │
+├──────────────────────┤    ├──────────────────────┤
+│      Transport       │◄──►│      Transport        │
+│   (Stdio, WebSkt)    │    │   (Stdio, WebSkt)     │
+└──────────────────────┘    └──────────────────────┘
+```
+
+**V2 lifecycle:** Agent registers handlers via `onRequest(method:requestType:handler:)`. Client calls `request(method:params:responseType:)` and listens for `session/update` notifications via `onNotification(method:)`. See the [V2 quick start](#use-the-v2-protocol) above for a working example.
 
 ## Testing
 
