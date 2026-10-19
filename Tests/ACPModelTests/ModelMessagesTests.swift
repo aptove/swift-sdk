@@ -104,7 +104,7 @@ internal final class ModelMessagesTests: XCTestCase {
         let request = SetSessionConfigOptionRequest(
             sessionId: SessionId(value: "session-789"),
             configId: SessionConfigId(value: "theme"),
-            value: SessionConfigValueId(value: "dark"),
+            value: .string("dark"),
             _meta: nil
         )
 
@@ -129,14 +129,18 @@ internal final class ModelMessagesTests: XCTestCase {
 
         XCTAssertEqual(request.sessionId.value, "session-abc")
         XCTAssertEqual(request.configId.value, "language")
-        XCTAssertEqual(request.value.value, "en")
+        if case .string(let v) = request.value {
+            XCTAssertEqual(v, "en")
+        } else {
+            XCTFail("Expected .string config value")
+        }
     }
 
     func testSetSessionConfigOptionRequestRoundTrip() throws {
         let original = SetSessionConfigOptionRequest(
             sessionId: SessionId(value: "test"),
             configId: SessionConfigId(value: "config"),
-            value: SessionConfigValueId(value: "val"),
+            value: .string("val"),
             _meta: nil
         )
 

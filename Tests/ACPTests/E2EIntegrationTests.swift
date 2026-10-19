@@ -1371,14 +1371,18 @@ internal final class E2EIntegrationTests: XCTestCase {
         let configRequest = SetSessionConfigOptionRequest(
             sessionId: sessionResponse.sessionId,
             configId: SessionConfigId(value: "format"),
-            value: SessionConfigValueId(value: "markdown")
+            value: .string("markdown")
         )
         _ = try await clientConnection.setSessionConfigOption(request: configRequest)
 
         // Then - agent received the request
         XCTAssertNotNil(receivedConfigRequest)
         XCTAssertEqual(receivedConfigRequest?.configId.value, "format")
-        XCTAssertEqual(receivedConfigRequest?.value.value, "markdown")
+        if let req = receivedConfigRequest, case .string(let v) = req.value {
+            XCTAssertEqual(v, "markdown")
+        } else {
+            XCTFail("Expected .string config value")
+        }
 
         // Cleanup
         await clientConnection.disconnect()

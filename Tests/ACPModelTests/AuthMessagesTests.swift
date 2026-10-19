@@ -226,7 +226,7 @@ internal final class AuthMessagesTests: XCTestCase {
             "id": "api-key-auth",
             "name": "API Key",
             "description": "Enter your API key",
-            "varName": "API_KEY",
+            "vars": [{"name": "API_KEY", "secret": false, "optional": false}],
             "link": "https://example.com/get-api-key"
         }
         """
@@ -237,7 +237,7 @@ internal final class AuthMessagesTests: XCTestCase {
             XCTAssertEqual(envVarMethod.id.value, "api-key-auth")
             XCTAssertEqual(envVarMethod.name, "API Key")
             XCTAssertEqual(envVarMethod.description, "Enter your API key")
-            XCTAssertEqual(envVarMethod.varName, "API_KEY")
+            XCTAssertEqual(envVarMethod.vars.first?.name, "API_KEY")
             XCTAssertEqual(envVarMethod.link, "https://example.com/get-api-key")
         } else {
             XCTFail("Expected env_var auth method, got \(method)")
@@ -283,7 +283,7 @@ internal final class AuthMessagesTests: XCTestCase {
                 "type": "env_var",
                 "id": "openai-key",
                 "name": "OpenAI API Key",
-                "varName": "OPENAI_API_KEY"
+                "vars": [{"name": "OPENAI_API_KEY", "secret": false, "optional": false}]
             }
         ]
         """
@@ -301,7 +301,7 @@ internal final class AuthMessagesTests: XCTestCase {
 
         if case .envVar(let second) = methods[1] {
             XCTAssertEqual(second.id.value, "openai-key")
-            XCTAssertEqual(second.varName, "OPENAI_API_KEY")
+            XCTAssertEqual(second.vars.first?.name, "OPENAI_API_KEY")
         } else {
             XCTFail("Expected second method to be env_var type")
         }
