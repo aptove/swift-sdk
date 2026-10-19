@@ -68,3 +68,14 @@ public struct ACP {
     /// The version of this SDK
     public static let version = "1.0.0"
 }
+
+/// Type alias for the ACP ``Protocol`` actor.
+///
+/// Use this alias when you need to annotate a variable or parameter with the Protocol type
+/// to avoid ambiguity with `ObjectiveC.Protocol` in files that import Foundation.
+///
+/// ```swift
+/// let proto: ACPProtocol = Protocol(transport: myTransport)
+/// func registerHandlers(proto: ACPProtocol) async { ... }
+/// ```
+public typealias ACPProtocol = Protocol

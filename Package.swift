@@ -27,25 +27,30 @@ public let package = Package(
             name: "ACPHTTP",
             targets: ["ACPHTTP"]
         ),
-        // Sample: Echo Agent
-        .executable(
-            name: "EchoAgent",
-            targets: ["EchoAgent"]
-        ),
-        // Sample: Simple Client
-        .executable(
-            name: "SimpleClient",
-            targets: ["SimpleClient"]
-        ),
-        // Sample: Interactive Client (full-featured)
-        .executable(
-            name: "InteractiveClient",
-            targets: ["InteractiveClient"]
-        ),
-        // Sample: SimpleAgentApp (in-process agent + client demo)
+        // Sample: SimpleAgentApp (v1 in-process agent + client demo)
         .executable(
             name: "SimpleAgentApp",
             targets: ["SimpleAgentApp"]
+        ),
+        // Sample: V2SimpleAgentApp (v2 in-process agent + client demo)
+        .executable(
+            name: "V2SimpleAgentApp",
+            targets: ["V2SimpleAgentApp"]
+        ),
+        // Sample: V2NegotiationApp (v2 in-process with protocol negotiation)
+        .executable(
+            name: "V2NegotiationApp",
+            targets: ["V2NegotiationApp"]
+        ),
+        // Sample: AuthStatusApp (auth/status for v1 and v2 agents)
+        .executable(
+            name: "AuthStatusApp",
+            targets: ["AuthStatusApp"]
+        ),
+        // Sample: GeminiClientApp (interactive client connecting to external agent)
+        .executable(
+            name: "GeminiClientApp",
+            targets: ["GeminiClientApp"]
         )
     ],
     dependencies: [
@@ -103,36 +108,44 @@ public let package = Package(
 
         // MARK: - Sample Applications
         .executableTarget(
-            name: "EchoAgent",
-            dependencies: [
-                "ACP",
-                "ACPModel"
-            ],
-            path: "Samples/EchoAgent"
-        ),
-.executableTarget(
-            name: "SimpleClient",
-            dependencies: [
-                "ACP",
-                "ACPModel"
-            ],
-            path: "Samples/SimpleClient"
-        ),
-        .executableTarget(
-            name: "InteractiveClient",
-            dependencies: [
-                "ACP",
-                "ACPModel"
-            ],
-            path: "Samples/InteractiveClient"
-        ),
-        .executableTarget(
             name: "SimpleAgentApp",
             dependencies: [
                 "ACP",
                 "ACPModel"
             ],
             path: "Samples/SimpleAgentApp"
+        ),
+        .executableTarget(
+            name: "V2SimpleAgentApp",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Samples/V2SimpleAgentApp"
+        ),
+        .executableTarget(
+            name: "V2NegotiationApp",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Samples/V2NegotiationApp"
+        ),
+        .executableTarget(
+            name: "AuthStatusApp",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Samples/AuthStatusApp"
+        ),
+        .executableTarget(
+            name: "GeminiClientApp",
+            dependencies: [
+                "ACP",
+                "ACPModel"
+            ],
+            path: "Samples/GeminiClientApp"
         )
     ]
 )
