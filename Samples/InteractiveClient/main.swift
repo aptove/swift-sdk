@@ -355,6 +355,12 @@ final class InteractiveClient: Client, ClientSessionOperations, @unchecked Senda
         case .usageUpdate:
             break
 
+        case .planUpdateV2:
+            break
+
+        case .planRemoved:
+            break
+
         case .unknown:
             break
         }

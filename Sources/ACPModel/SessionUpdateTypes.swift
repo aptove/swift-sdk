@@ -322,6 +322,66 @@ public struct UsageUpdate: Codable, Sendable, Hashable {
     }
 }
 
+/// **UNSTABLE** - A plan update with richer format support and plan identity.
+public struct PlanUpdateV2: Codable, Sendable, Hashable {
+    public let plan: PlanVariant
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(plan: PlanVariant, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self.plan = plan
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionUpdate = "sessionUpdate"
+        case plan = "plan"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        plan = try container.decode(PlanVariant.self, forKey: .plan)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode("plan_update", forKey: .sessionUpdate)
+        try container.encode(plan, forKey: .plan)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
+    }
+}
+
+/// **UNSTABLE** - Signals that a plan has been dismissed/removed.
+public struct PlanRemovedUpdate: Codable, Sendable, Hashable {
+    public let id: String
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(id: String, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self.id = id
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionUpdate = "sessionUpdate"
+        case id = "id"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode("plan_removed", forKey: .sessionUpdate)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
+    }
+}
+
 /// Unknown session update for forward compatibility.
 ///
 /// Captures any session update type not recognized by this SDK version.

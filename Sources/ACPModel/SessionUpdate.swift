@@ -69,6 +69,12 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Token usage update for the session
     case usageUpdate(UsageUpdate)
 
+    /// **UNSTABLE** - A plan update with richer format support and plan identity
+    case planUpdateV2(PlanUpdateV2)
+
+    /// **UNSTABLE** - Signals that a plan has been dismissed/removed
+    case planRemoved(PlanRemovedUpdate)
+
     /// Unknown session update type for forward compatibility
     case unknown(UnknownSessionUpdate)
 
@@ -105,6 +111,10 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
             self = .sessionInfoUpdate(try SessionInfoUpdate(from: decoder))
         case "usage_update":
             self = .usageUpdate(try UsageUpdate(from: decoder))
+        case "plan_update":
+            self = .planUpdateV2(try PlanUpdateV2(from: decoder))
+        case "plan_removed":
+            self = .planRemoved(try PlanRemovedUpdate(from: decoder))
         default:
             self = .unknown(UnknownSessionUpdate(sessionUpdateType: typeString))
         }
@@ -133,6 +143,10 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
         case .sessionInfoUpdate(let update):
             try update.encode(to: encoder)
         case .usageUpdate(let update):
+            try update.encode(to: encoder)
+        case .planUpdateV2(let update):
+            try update.encode(to: encoder)
+        case .planRemoved(let update):
             try update.encode(to: encoder)
         case .unknown(let update):
             var container = encoder.container(keyedBy: CodingKeys.self)

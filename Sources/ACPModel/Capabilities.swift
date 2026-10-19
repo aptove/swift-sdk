@@ -86,6 +86,24 @@ public struct PromptCapabilities: Codable, Sendable, Hashable {
 ///
 /// This capability is not part of the spec yet, and may be removed or changed at any point.
 ///
+/// Plan capabilities supported by the client.
+///
+/// When present, signals that the client supports `plan_update` and `plan_removed`
+/// session update types. When absent, the agent must fall back to the existing
+/// `plan` session update type.
+public struct PlanCapabilities: Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
 /// Authentication capabilities supported by the client or agent.
 ///
 /// Advertised during initialization to inform the other side which authentication
@@ -264,6 +282,9 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Authentication capabilities
     public let auth: AuthCapabilities?
 
+    /// **UNSTABLE** - Plan capabilities
+    public let planCapabilities: PlanCapabilities?
+
     /// **UNSTABLE** - NES (Next Edit Suggestions) capabilities
     public let nes: ClientNesCapabilities?
 
@@ -282,6 +303,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     ///   - fs: File system capabilities
     ///   - terminal: Terminal support
     ///   - auth: Authentication capabilities (unstable)
+    ///   - planCapabilities: Plan capabilities (unstable)
     ///   - nes: NES capabilities (unstable)
     ///   - positionEncodings: Position encodings supported (unstable)
     ///   - elicitation: Elicitation capabilities (unstable)
@@ -290,6 +312,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
         fs: FileSystemCapability? = nil,
         terminal: Bool = false,
         auth: AuthCapabilities? = nil,
+        planCapabilities: PlanCapabilities? = nil,
         nes: ClientNesCapabilities? = nil,
         positionEncodings: [NesPositionEncodingKind]? = nil,
         elicitation: ElicitationCapabilities? = nil,
@@ -298,6 +321,7 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
         self.fs = fs
         self.terminal = terminal
         self.auth = auth
+        self.planCapabilities = planCapabilities
         self.nes = nes
         self.positionEncodings = positionEncodings
         self.elicitation = elicitation
