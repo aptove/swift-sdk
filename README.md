@@ -410,14 +410,14 @@ Run samples from the `swift-sdk` directory.
 V2 has no high-level `AgentConnection`/`ClientConnection` wrappers yet. Both sides use `ACPProtocol` directly, registering typed handlers and sending notifications manually:
 
 ```
-┌──────────────────────┐    ┌──────────────────────┐
+┌──────────────────────┐    ┌───────────────────────┐
 │ Agent (V2 handlers)  │    │  Client (V2 requests) │
-├──────────────────────┤    ├──────────────────────┤
+├──────────────────────┤    ├───────────────────────┤
 │     ACPProtocol      │    │     ACPProtocol       │
-├──────────────────────┤    ├──────────────────────┤
+├──────────────────────┤    ├───────────────────────┤
 │      Transport       │◄──►│      Transport        │
 │   (Stdio, WebSkt)    │    │   (Stdio, WebSkt)     │
-└──────────────────────┘    └──────────────────────┘
+└──────────────────────┘    └───────────────────────┘
 ```
 
 **V2 lifecycle:** Agent registers handlers via `onRequest(method:requestType:handler:)`. Client calls `request(method:params:responseType:)` and listens for `session/update` notifications via `onNotification(method:)`. See the [V2 quick start](#use-the-v2-protocol) above for a working example.
