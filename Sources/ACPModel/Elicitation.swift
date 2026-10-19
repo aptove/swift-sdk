@@ -53,7 +53,7 @@ public enum ElicitationUrlOnlyMode: String, Codable, Sendable, Hashable {
 
 // MARK: - EnumOption
 
-/// A titled enum option with a const value and human-readable title.
+/// A titled enum option with a const value, human-readable title, optional description, and metadata.
 public struct EnumOption: Codable, Sendable, Hashable {
     /// The const value
     public let value: String
@@ -61,14 +61,27 @@ public struct EnumOption: Codable, Sendable, Hashable {
     /// Human-readable title
     public let title: String
 
-    public init(value: String, title: String) {
+    /// Optional description
+    public let description: String?
+
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        value: String,
+        title: String,
+        description: String? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
         self.value = value
         self.title = title
+        self.description = description
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case value = "const"
-        case title
+        case title, description
+        case _meta // swiftlint:disable:this identifier_name
     }
 }
 

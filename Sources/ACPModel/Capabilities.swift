@@ -190,6 +190,17 @@ public struct SessionResumeCapabilities: Codable, Sendable, Hashable {
     }
 }
 
+/// Capabilities for deleting sessions from history.
+///
+/// By supplying `{}` it means that the agent supports the `session/delete` method.
+public struct SessionDeleteCapabilities: Codable, Sendable, Hashable {
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
 /// **UNSTABLE**: Capabilities for closing sessions.
 ///
 /// This capability is not part of the spec yet, and may be removed or changed at any point.
@@ -231,6 +242,9 @@ public struct SessionCapabilities: Codable, Sendable, Hashable {
     /// Resume session capability (unstable)
     public let resume: SessionResumeCapabilities?
 
+    /// Delete session capability
+    public let delete: SessionDeleteCapabilities?
+
     /// Close session capability (unstable)
     public let close: SessionCloseCapabilities?
 
@@ -241,18 +255,11 @@ public struct SessionCapabilities: Codable, Sendable, Hashable {
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     /// Creates session capabilities.
-    ///
-    /// - Parameters:
-    ///   - fork: Fork capability
-    ///   - list: List capability
-    ///   - resume: Resume capability
-    ///   - close: Close capability
-    ///   - additionalDirectories: Additional directories capability
-    ///   - _meta: Optional metadata
     public init(
         fork: SessionForkCapabilities? = nil,
         list: SessionListCapabilities? = nil,
         resume: SessionResumeCapabilities? = nil,
+        delete: SessionDeleteCapabilities? = nil,
         close: SessionCloseCapabilities? = nil,
         additionalDirectories: SessionAdditionalDirectoriesCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
@@ -260,6 +267,7 @@ public struct SessionCapabilities: Codable, Sendable, Hashable {
         self.fork = fork
         self.list = list
         self.resume = resume
+        self.delete = delete
         self.close = close
         self.additionalDirectories = additionalDirectories
         self._meta = _meta

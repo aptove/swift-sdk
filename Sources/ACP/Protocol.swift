@@ -203,7 +203,7 @@ public actor Protocol {
 
     /// Registers the built-in handler for cancel request notifications.
     private func registerCancelRequestHandler() {
-        notificationHandlers["$/cancelRequest"] = { [weak self] notification in
+        notificationHandlers["$/cancel_request"] = { [weak self] notification in
             await self?.handleCancelRequest(notification)
         }
     }
@@ -231,7 +231,7 @@ public actor Protocol {
     private func sendCancelNotification(requestId: RequestId, message: String?) async {
         let cancelNotification = CancelRequestNotification(requestId: requestId, message: message)
         do {
-            try await sendNotification(method: "$/cancelRequest", params: cancelNotification)
+            try await sendNotification(method: "$/cancel_request", params: cancelNotification)
         } catch {
             // Best effort - don't fail if cancel notification can't be sent
             errorContinuation?.yield(.encodingFailed(underlying: error))

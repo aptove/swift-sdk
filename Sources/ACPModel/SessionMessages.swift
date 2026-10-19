@@ -264,6 +264,28 @@ public struct PromptResponse: AcpResponse, Codable, Sendable, Hashable {
 
 // MARK: - Session Notifications
 
+// MARK: - Session Deletion
+
+/// Request to delete a session from history.
+public struct DeleteSessionRequest: AcpRequest, AcpWithSessionId, Codable, Sendable, Hashable {
+    public let sessionId: SessionId
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(sessionId: SessionId, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self.sessionId = sessionId
+        self._meta = _meta
+    }
+}
+
+/// Response from deleting a session from history.
+public struct DeleteSessionResponse: AcpResponse, Codable, Sendable, Hashable {
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
 /// Notification containing session updates from the agent.
 ///
 /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)

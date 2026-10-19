@@ -67,7 +67,7 @@ extension Protocol {
     /// - Parameter notification: Cancel request notification with request ID
     /// - Throws: ProtocolError if the notification fails to send
     public func sendCancelRequest(notification: CancelRequestNotification) async throws {
-        try await sendNotification(method: "$/cancelRequest", params: notification)
+        try await sendNotification(method: "$/cancel_request", params: notification)
     }
 
     /// Authenticate with the agent using a specific method.
