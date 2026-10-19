@@ -138,6 +138,9 @@ public struct PromptRequest: AcpRequest, Codable, Sendable, Hashable {
     /// The user's prompt as a list of content blocks
     public let prompt: [ContentBlock]
 
+    /// **UNSTABLE** - Optional message identifier for correlation
+    public let messageId: MessageId?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -145,10 +148,12 @@ public struct PromptRequest: AcpRequest, Codable, Sendable, Hashable {
     public init(
         sessionId: SessionId,
         prompt: [ContentBlock],
+        messageId: MessageId? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.sessionId = sessionId
         self.prompt = prompt
+        self.messageId = messageId
         self._meta = _meta
     }
 }
@@ -180,15 +185,20 @@ public struct PromptResponse: AcpResponse, Codable, Sendable, Hashable {
     /// The reason the agent stopped processing
     public let stopReason: StopReason
 
+    /// **UNSTABLE** - Echo of the client's messageId from the PromptRequest, if provided
+    public let userMessageId: MessageId?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     /// Creates a prompt response.
     public init(
         stopReason: StopReason,
+        userMessageId: MessageId? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.stopReason = stopReason
+        self.userMessageId = userMessageId
         self._meta = _meta
     }
 }

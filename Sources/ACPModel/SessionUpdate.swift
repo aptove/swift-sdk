@@ -147,24 +147,31 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
 public struct UserMessageChunk: Codable, Sendable, Hashable {
     public let content: ContentBlock
 
-    public init(content: ContentBlock) {
+    /// **UNSTABLE** - Optional message identifier for correlation
+    public let messageId: MessageId?
+
+    public init(content: ContentBlock, messageId: MessageId? = nil) {
         self.content = content
+        self.messageId = messageId
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
+        case messageId = "messageId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
+        messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode("user_message_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(messageId, forKey: .messageId)
     }
 }
 
@@ -172,24 +179,31 @@ public struct UserMessageChunk: Codable, Sendable, Hashable {
 public struct AgentMessageChunk: Codable, Sendable, Hashable {
     public let content: ContentBlock
 
-    public init(content: ContentBlock) {
+    /// **UNSTABLE** - Optional message identifier for correlation
+    public let messageId: MessageId?
+
+    public init(content: ContentBlock, messageId: MessageId? = nil) {
         self.content = content
+        self.messageId = messageId
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
+        case messageId = "messageId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
+        messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode("agent_message_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(messageId, forKey: .messageId)
     }
 }
 
@@ -197,23 +211,30 @@ public struct AgentMessageChunk: Codable, Sendable, Hashable {
 public struct AgentThoughtChunk: Codable, Sendable, Hashable {
     public let content: ContentBlock
 
-    public init(content: ContentBlock) {
+    /// **UNSTABLE** - Optional message identifier for correlation
+    public let messageId: MessageId?
+
+    public init(content: ContentBlock, messageId: MessageId? = nil) {
         self.content = content
+        self.messageId = messageId
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
+        case messageId = "messageId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
+        messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode("agent_thought_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(messageId, forKey: .messageId)
     }
 }
