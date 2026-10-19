@@ -341,6 +341,61 @@ public actor ClientConnection {
         return try await protocolLayer.setSessionConfigOption(request: request)
     }
 
+    // MARK: - Provider Configuration (Unstable API)
+
+    /// **UNSTABLE** - List configurable LLM providers.
+    ///
+    /// - Returns: Response with provider list
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func listProviders() async throws -> ListProvidersResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "providers/list",
+            params: ListProvidersRequest(),
+            responseType: ListProvidersResponse.self
+        )
+    }
+
+    /// **UNSTABLE** - Set/replace configuration for a provider.
+    ///
+    /// - Parameter request: The set providers request
+    /// - Returns: Response confirming the update
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func setProvider(request: SetProvidersRequest) async throws -> SetProvidersResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "providers/set",
+            params: request,
+            responseType: SetProvidersResponse.self
+        )
+    }
+
+    /// **UNSTABLE** - Disable a provider by ID.
+    ///
+    /// - Parameter request: The disable providers request
+    /// - Returns: Response confirming the update
+    /// - Throws: Error if the request fails
+    @available(*, message: "Unstable API - may change without notice")
+    public func disableProvider(request: DisableProvidersRequest) async throws -> DisableProvidersResponse {
+        guard state == .connected else {
+            throw ClientError.notConnected
+        }
+
+        return try await protocolLayer.request(
+            method: "providers/disable",
+            params: request,
+            responseType: DisableProvidersResponse.self
+        )
+    }
+
     // MARK: - Prompt Operations
 
     /// Send a prompt to the agent.

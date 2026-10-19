@@ -342,6 +342,18 @@ public struct AgentAuthCapabilities: Codable, Sendable, Hashable {
     }
 }
 
+/// **UNSTABLE** - Provider configuration capabilities supported by the agent.
+///
+/// By supplying `{}` it means that the agent supports provider configuration methods.
+public struct ProvidersCapabilities: Codable, Sendable, Hashable {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
 /// Capabilities supported by the agent.
 ///
 /// Advertised during initialization to inform the client about
@@ -370,6 +382,9 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Position encoding preferred by the agent
     public let positionEncoding: NesPositionEncodingKind?
 
+    /// **UNSTABLE** - Provider configuration capabilities
+    public let providers: ProvidersCapabilities?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -383,6 +398,7 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     ///   - auth: Authentication capabilities (unstable)
     ///   - nes: NES capabilities (unstable)
     ///   - positionEncoding: Position encoding (unstable)
+    ///   - providers: Provider configuration capabilities (unstable)
     ///   - _meta: Optional metadata
     public init(
         loadSession: Bool = false,
@@ -392,6 +408,7 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         auth: AgentAuthCapabilities? = nil,
         nes: NesCapabilities? = nil,
         positionEncoding: NesPositionEncodingKind? = nil,
+        providers: ProvidersCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.loadSession = loadSession
@@ -401,6 +418,7 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.auth = auth
         self.nes = nes
         self.positionEncoding = positionEncoding
+        self.providers = providers
         self._meta = _meta
     }
 
@@ -414,10 +432,11 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.auth = try container.decodeIfPresent(AgentAuthCapabilities.self, forKey: .auth)
         self.nes = try container.decodeIfPresent(NesCapabilities.self, forKey: .nes)
         self.positionEncoding = try container.decodeIfPresent(NesPositionEncodingKind.self, forKey: .positionEncoding)
+        self.providers = try container.decodeIfPresent(ProvidersCapabilities.self, forKey: .providers)
         self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, nes, positionEncoding, _meta
+        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, nes, positionEncoding, providers, _meta
     }
 }

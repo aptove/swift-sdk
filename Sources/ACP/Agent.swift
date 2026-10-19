@@ -167,6 +167,36 @@ public protocol Agent: Sendable {
     /// - Throws: Error if the request fails
     func closeSession(request: CloseSessionRequest) async throws -> CloseSessionResponse
 
+    /// **UNSTABLE** - List configurable LLM providers.
+    ///
+    /// Default implementation throws not implemented error.
+    /// Requires `providers` capability to be advertised.
+    ///
+    /// - Parameter request: The list providers request
+    /// - Returns: Response with provider list
+    /// - Throws: Error if the request fails
+    func listProviders(request: ListProvidersRequest) async throws -> ListProvidersResponse
+
+    /// **UNSTABLE** - Set/replace configuration for a provider.
+    ///
+    /// Default implementation throws not implemented error.
+    /// Requires `providers` capability to be advertised.
+    ///
+    /// - Parameter request: The set providers request
+    /// - Returns: Response confirming the update
+    /// - Throws: Error if the request fails
+    func setProvider(request: SetProvidersRequest) async throws -> SetProvidersResponse
+
+    /// **UNSTABLE** - Disable a provider.
+    ///
+    /// Default implementation throws not implemented error.
+    /// Requires `providers` capability to be advertised.
+    ///
+    /// - Parameter request: The disable providers request
+    /// - Returns: Response confirming the update
+    /// - Throws: Error if the request fails
+    func disableProvider(request: DisableProvidersRequest) async throws -> DisableProvidersResponse
+
     /// **UNSTABLE** - Start a NES (Next Edit Suggestions) session.
     ///
     /// Default implementation throws not implemented error.
@@ -256,6 +286,21 @@ public extension Agent {
     /// Default close session implementation throws not implemented error.
     func closeSession(request: CloseSessionRequest) async throws -> CloseSessionResponse {
         throw AgentError.notImplemented(method: "closeSession")
+    }
+
+    /// Default list providers implementation throws not implemented error.
+    func listProviders(request: ListProvidersRequest) async throws -> ListProvidersResponse {
+        throw AgentError.notImplemented(method: "listProviders")
+    }
+
+    /// Default set provider implementation throws not implemented error.
+    func setProvider(request: SetProvidersRequest) async throws -> SetProvidersResponse {
+        throw AgentError.notImplemented(method: "setProvider")
+    }
+
+    /// Default disable provider implementation throws not implemented error.
+    func disableProvider(request: DisableProvidersRequest) async throws -> DisableProvidersResponse {
+        throw AgentError.notImplemented(method: "disableProvider")
     }
 
     /// Default start NES implementation throws not implemented error.

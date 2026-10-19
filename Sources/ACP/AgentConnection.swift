@@ -164,6 +164,18 @@ public actor AgentConnection {
             try await self?.handleCloseSession(request) ?? .null
         }
 
+        await proto.onRequest(method: "providers/list") { [weak self] request in
+            try await self?.handleListProviders(request) ?? .null
+        }
+
+        await proto.onRequest(method: "providers/set") { [weak self] request in
+            try await self?.handleSetProvider(request) ?? .null
+        }
+
+        await proto.onRequest(method: "providers/disable") { [weak self] request in
+            try await self?.handleDisableProvider(request) ?? .null
+        }
+
         await proto.onRequest(method: "nes/start") { [weak self] request in
             try await self?.handleStartNes(request) ?? .null
         }
@@ -297,6 +309,27 @@ public actor AgentConnection {
     private func handleLogout(_ request: JsonRpcRequest) async throws -> JsonValue {
         let logoutRequest: LogoutRequest = try decodeParams(request.params)
         let response = try await agent.logout(request: logoutRequest)
+        return try encodeResult(response)
+    }
+
+    /// Handle list providers request (unstable API).
+    private func handleListProviders(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let req: ListProvidersRequest = try decodeParams(request.params)
+        let response = try await agent.listProviders(request: req)
+        return try encodeResult(response)
+    }
+
+    /// Handle set provider request (unstable API).
+    private func handleSetProvider(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let req: SetProvidersRequest = try decodeParams(request.params)
+        let response = try await agent.setProvider(request: req)
+        return try encodeResult(response)
+    }
+
+    /// Handle disable provider request (unstable API).
+    private func handleDisableProvider(_ request: JsonRpcRequest) async throws -> JsonValue {
+        let req: DisableProvidersRequest = try decodeParams(request.params)
+        let response = try await agent.disableProvider(request: req)
         return try encodeResult(response)
     }
 
