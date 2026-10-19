@@ -219,6 +219,9 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     /// Whether terminal operations are supported
     public let terminal: Bool
 
+    /// **UNSTABLE** - Authentication capabilities
+    public let auth: AuthCapabilities?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -227,14 +230,17 @@ public struct ClientCapabilities: Codable, Sendable, Hashable {
     /// - Parameters:
     ///   - fs: File system capabilities
     ///   - terminal: Terminal support
+    ///   - auth: Authentication capabilities (unstable)
     ///   - _meta: Optional metadata
     public init(
         fs: FileSystemCapability? = nil,
         terminal: Bool = false,
+        auth: AuthCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.fs = fs
         self.terminal = terminal
+        self.auth = auth
         self._meta = _meta
     }
 }
@@ -258,9 +264,6 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     /// Session management capabilities
     public let sessionCapabilities: SessionCapabilities?
 
-    /// **UNSTABLE** - Authentication capabilities
-    public let auth: AuthCapabilities?
-
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
@@ -271,21 +274,18 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
     ///   - promptCapabilities: Prompt capabilities
     ///   - mcpCapabilities: MCP capabilities
     ///   - sessionCapabilities: Session capabilities
-    ///   - auth: Authentication capabilities (unstable)
     ///   - _meta: Optional metadata
     public init(
         loadSession: Bool = false,
         promptCapabilities: PromptCapabilities = PromptCapabilities(),
         mcpCapabilities: McpCapabilities? = nil,
         sessionCapabilities: SessionCapabilities? = nil,
-        auth: AuthCapabilities? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.loadSession = loadSession
         self.promptCapabilities = promptCapabilities
         self.mcpCapabilities = mcpCapabilities
         self.sessionCapabilities = sessionCapabilities
-        self.auth = auth
         self._meta = _meta
     }
 
@@ -296,11 +296,10 @@ public struct AgentCapabilities: Codable, Sendable, Hashable {
         self.promptCapabilities = try container.decodeIfPresent(PromptCapabilities.self, forKey: .promptCapabilities) ?? PromptCapabilities()
         self.mcpCapabilities = try container.decodeIfPresent(McpCapabilities.self, forKey: .mcpCapabilities)
         self.sessionCapabilities = try container.decodeIfPresent(SessionCapabilities.self, forKey: .sessionCapabilities)
-        self.auth = try container.decodeIfPresent(AuthCapabilities.self, forKey: .auth)
         self._meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, auth, _meta
+        case loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities, _meta
     }
 }
