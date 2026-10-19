@@ -270,6 +270,70 @@ public struct ConfigOptionUpdate: Codable, Sendable, Hashable {
     }
 }
 
+/// **UNSTABLE** - Token usage update for the session.
+public struct UsageUpdate: Codable, Sendable, Hashable {
+    /// Number of tokens used
+    public let used: Int64
+
+    /// Total context size in tokens
+    public let size: Int64
+
+    /// Optional cost information
+    public let cost: Cost?
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        used: Int64,
+        size: Int64,
+        cost: Cost? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.used = used
+        self.size = size
+        self.cost = cost
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionUpdate = "sessionUpdate"
+        case used = "used"
+        case size = "size"
+        case cost = "cost"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        used = try container.decode(Int64.self, forKey: .used)
+        size = try container.decode(Int64.self, forKey: .size)
+        cost = try container.decodeIfPresent(Cost.self, forKey: .cost)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode("usage_update", forKey: .sessionUpdate)
+        try container.encode(used, forKey: .used)
+        try container.encode(size, forKey: .size)
+        try container.encodeIfPresent(cost, forKey: .cost)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
+    }
+}
+
+/// Unknown session update for forward compatibility.
+///
+/// Captures any session update type not recognized by this SDK version.
+public struct UnknownSessionUpdate: Sendable, Hashable {
+    /// The raw session update type discriminator value
+    public let sessionUpdateType: String
+
+    public init(sessionUpdateType: String) {
+        self.sessionUpdateType = sessionUpdateType
+    }
+}
+
 /// Session information has been updated (unstable API).
 public struct SessionInfoUpdate: Codable, Sendable, Hashable {
     public let title: String?

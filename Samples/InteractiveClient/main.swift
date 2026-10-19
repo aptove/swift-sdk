@@ -351,6 +351,12 @@ final class InteractiveClient: Client, ClientSessionOperations, @unchecked Senda
             if let title = info.title {
                 print("📌 Session: \(title)")
             }
+
+        case .usageUpdate:
+            break
+
+        case .unknown:
+            break
         }
     }
 

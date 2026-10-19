@@ -2,6 +2,34 @@ import Foundation
 
 // Note: SessionConfigOption is now fully implemented in SessionConfigOption.swift
 
+// MARK: - Cost
+
+/// **UNSTABLE**
+///
+/// This capability is not part of the spec yet, and may be removed or changed at any point.
+///
+/// Cost information for token usage.
+public struct Cost: Codable, Sendable, Hashable {
+    /// The cost amount
+    public let amount: Double
+
+    /// The currency code (e.g. "USD")
+    public let currency: String
+
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        amount: Double,
+        currency: String,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.amount = amount
+        self.currency = currency
+        self._meta = _meta
+    }
+}
+
 /// Updates that can be sent during session processing.
 ///
 /// These updates provide real-time feedback about the agent's progress.
@@ -38,50 +66,47 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
     /// Session information has been updated (unstable)
     case sessionInfoUpdate(SessionInfoUpdate)
 
+    /// **UNSTABLE** - Token usage update for the session
+    case usageUpdate(UsageUpdate)
+
+    /// Unknown session update type for forward compatibility
+    case unknown(UnknownSessionUpdate)
+
     // MARK: - Codable
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
     }
 
-    private enum UpdateType: String, Codable {
-        case userMessageChunk = "user_message_chunk"
-        case agentMessageChunk = "agent_message_chunk"
-        case agentThoughtChunk = "agent_thought_chunk"
-        case toolCall = "tool_call"
-        case toolCallUpdate = "tool_call_update"
-        case planUpdate = "plan"
-        case availableCommandsUpdate = "available_commands_update"
-        case currentModeUpdate = "current_mode_update"
-        case configOptionUpdate = "config_option_update"
-        case sessionInfoUpdate = "session_info_update"
-    }
-
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(UpdateType.self, forKey: .sessionUpdate)
+        let typeString = try container.decode(String.self, forKey: .sessionUpdate)
 
-        switch type {
-        case .userMessageChunk:
+        switch typeString {
+        case "user_message_chunk":
             self = .userMessageChunk(try UserMessageChunk(from: decoder))
-        case .agentMessageChunk:
+        case "agent_message_chunk":
             self = .agentMessageChunk(try AgentMessageChunk(from: decoder))
-        case .agentThoughtChunk:
+        case "agent_thought_chunk":
             self = .agentThoughtChunk(try AgentThoughtChunk(from: decoder))
-        case .toolCall:
+        case "tool_call":
             self = .toolCall(try ToolCallUpdate(from: decoder))
-        case .toolCallUpdate:
+        case "tool_call_update":
             self = .toolCallUpdate(try ToolCallUpdateData(from: decoder))
-        case .planUpdate:
+        case "plan":
             self = .planUpdate(try PlanUpdate(from: decoder))
-        case .availableCommandsUpdate:
+        case "available_commands_update":
             self = .availableCommandsUpdate(try AvailableCommandsUpdate(from: decoder))
-        case .currentModeUpdate:
+        case "current_mode_update":
             self = .currentModeUpdate(try CurrentModeUpdate(from: decoder))
-        case .configOptionUpdate:
+        case "config_option_update":
             self = .configOptionUpdate(try ConfigOptionUpdate(from: decoder))
-        case .sessionInfoUpdate:
+        case "session_info_update":
             self = .sessionInfoUpdate(try SessionInfoUpdate(from: decoder))
+        case "usage_update":
+            self = .usageUpdate(try UsageUpdate(from: decoder))
+        default:
+            self = .unknown(UnknownSessionUpdate(sessionUpdateType: typeString))
         }
     }
 
@@ -107,6 +132,11 @@ public enum SessionUpdate: Codable, Sendable, Hashable {
             try update.encode(to: encoder)
         case .sessionInfoUpdate(let update):
             try update.encode(to: encoder)
+        case .usageUpdate(let update):
+            try update.encode(to: encoder)
+        case .unknown(let update):
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(update.sessionUpdateType, forKey: .sessionUpdate)
         }
     }
 }
