@@ -7,6 +7,7 @@
 [![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/saltukalakus/openspec-acp-swift-sdk/actions/workflows/swift-sdk-tests.yml/badge.svg)](https://github.com/saltukalakus/openspec-acp-swift-sdk/actions/workflows/swift-sdk-tests.yml)
 
 A Swift implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) for building AI agent clients and servers. Ship ACP-compliant agents, clients, and transports for iOS apps, macOS tools, CLI utilities, or any Swift-based host.
 
@@ -33,8 +34,10 @@ ACP standardizes how AI agents and clients exchange messages, negotiate capabili
 | Module | Description | Main types |
 |--------|-------------|------------|
 | `ACPModel` | Pure data model for ACP messages, capabilities, and enums | `JsonRpcMessage`, `PromptRequest`, `SessionUpdate` |
-| `ACP` | Core agent/client runtime with STDIO transport | `Agent`, `Client`, `AgentConnection`, `ClientConnection`, `StdioTransport` |
+| `ACP` | Core agent/client runtime with STDIO transport | `Agent`, `Client`, `AgentConnection`, `ClientConnection`, `StdioTransport`, `ACPProtocol` |
 | `ACPHTTP` | HTTP/WebSocket transport support | `WebSocketTransport` |
+
+> **Tip:** When using the low-level `Protocol` actor directly (e.g. for V2 sessions), import `ACP` and use the `ACPProtocol` typealias to avoid ambiguity with `ObjectiveC.Protocol` in files that also import Foundation.
 
 ## Requirements
 
@@ -240,19 +243,22 @@ struct ClientMain {
 
 | Sample | Description | Command |
 |--------|-------------|---------|
-| `EchoAgent` | Simple agent that echoes messages back | `swift run EchoAgent` |
-| `SimpleClient` | Basic client connecting to an agent | `swift run SimpleClient "agent-command"` |
-| `InteractiveClient` | Full-featured CLI client with file/terminal ops | `swift run InteractiveClient copilot --acp` |
-| `SimpleAgentApp` | In-process agent + client demo | `swift run SimpleAgentApp` |
+| `SimpleAgentApp` | In-process V1 agent + client demo | `swift run SimpleAgentApp` |
+| `V2SimpleAgentApp` | In-process V2 agent + client demo with session config options | `swift run V2SimpleAgentApp` |
+| `V2NegotiationApp` | Protocol version negotiation: client tries V2 first, falls back to V1 | `swift run V2NegotiationApp` |
+| `AuthStatusApp` | Queries `auth/status` via both V1 and V2 protocols against a real agent | `swift run AuthStatusApp <cmd> [args]` |
+| `GeminiClientApp` | Interactive stdio client with file system and terminal support | `swift run GeminiClientApp <cmd> [args]` |
 
-Each sample includes a README with detailed usage instructions. Run samples from the `swift-sdk` directory.
+Run samples from the `swift-sdk` directory.
 
 ## Capabilities
 
 ### Protocol
 - ✅ Full ACP protocol coverage with JSON-RPC framing
-- ✅ Typed request/response wrappers
+- ✅ Typed request/response wrappers for both V1 and V2
 - ✅ Message correlation, error propagation
+- ✅ V2 protocol: `session/new`, `session/prompt`, `session/update`, `session/set_config_option`
+- ✅ V2 protocol version negotiation (client tries V2, falls back to V1)
 - ✅ Protocol version: **2025-02-07**
 
 ### Agent runtime
@@ -303,11 +309,12 @@ Each sample includes a README with detailed usage instructions. Run samples from
 
 ## Testing
 
-Run the test suite:
+The test suite and SwiftLint run automatically on every push via GitHub Actions. To run locally:
 
 ```bash
 cd swift-sdk
 swift test
+swiftlint lint --strict
 ```
 
 Run specific test files:
