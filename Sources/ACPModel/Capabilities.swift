@@ -362,14 +362,19 @@ public struct AgentAuthCapabilities: Codable, Sendable, Hashable {
     /// Whether the agent supports the logout method
     public let logout: LogoutCapabilities?
 
+    /// **UNSTABLE** - Only `true` advertises support for the `auth/status` query.
+    public let status: Bool?
+
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
     public init(
         logout: LogoutCapabilities? = nil,
+        status: Bool? = nil,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.logout = logout
+        self.status = status
         self._meta = _meta
     }
 }

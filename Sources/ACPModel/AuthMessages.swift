@@ -333,6 +333,39 @@ public struct LogoutResponse: AcpResponse, Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - Auth Status Request
+
+/// **UNSTABLE** - Request parameters for the `auth/status` method.
+public struct AuthStatusRequest: AcpRequest, Codable, Sendable, Hashable {
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+        self._meta = _meta
+    }
+}
+
+// MARK: - Auth Status Response
+
+/// **UNSTABLE** - Response to the `auth/status` method.
+///
+/// Status of configured credentials, which does not guarantee that they are valid.
+/// `message` is an optional human-readable explanation of the authentication state.
+public struct AuthStatusResponse: AcpResponse, Codable, Sendable, Hashable {
+    public let authenticated: Bool
+    public let message: String?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        authenticated: Bool,
+        message: String? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.authenticated = authenticated
+        self.message = message
+        self._meta = _meta
+    }
+}
+
 // MARK: - Auth Method ID
 
 /// A unique identifier for an authentication method.

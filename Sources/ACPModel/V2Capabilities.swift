@@ -174,11 +174,17 @@ public struct V2SessionCapabilities: Codable, Sendable, Hashable {
 ///
 /// Unlike v1, this object does not advertise support for `auth/login` or `auth/logout`
 /// — those methods are advertised by a non-empty `authMethods` list in the initialize
-/// response instead.
+/// response instead. `status: true` advertises support for the `auth/status` query.
 public struct V2AgentAuthCapabilities: Codable, Sendable, Hashable {
+    /// **UNSTABLE** - Only `true` advertises support for the `auth/status` query.
+    public let status: Bool?
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
-    public init(_meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+    public init(
+        status: Bool? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.status = status
         self._meta = _meta
     }
 }

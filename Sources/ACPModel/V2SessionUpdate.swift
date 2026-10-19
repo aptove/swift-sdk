@@ -572,6 +572,8 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
     case notice(V2Notice)
     case compactionUpdate(V2CompactionUpdate)
     case compactionSummaryChunk(V2CompactionSummaryChunk)
+    case terminalUpdate(V2TerminalUpdate)
+    case terminalOutputChunk(V2TerminalOutputChunk)
     case unknown(sessionUpdate: String, rawJson: [String: JsonValue])
 
     private enum DiscKey: String, CodingKey { case sessionUpdate }
@@ -616,6 +618,10 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             self = .compactionUpdate(try V2CompactionUpdate(from: decoder))
         case "compaction_summary_chunk":
             self = .compactionSummaryChunk(try V2CompactionSummaryChunk(from: decoder))
+        case "terminal_update":
+            self = .terminalUpdate(try V2TerminalUpdate(from: decoder))
+        case "terminal_output_chunk":
+            self = .terminalOutputChunk(try V2TerminalOutputChunk(from: decoder))
         default:
             let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
             self = .unknown(sessionUpdate: typeStr, rawJson: raw)
@@ -678,6 +684,12 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             try v.encode(to: encoder)
         case .compactionSummaryChunk(let v):
             try discContainer.encode("compaction_summary_chunk", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .terminalUpdate(let v):
+            try discContainer.encode("terminal_update", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .terminalOutputChunk(let v):
+            try discContainer.encode("terminal_output_chunk", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .unknown(_, let raw):
             var c = encoder.singleValueContainer()

@@ -228,8 +228,8 @@ public actor Protocol {
     }
 
     /// Sends a cancel request notification to the other side.
-    private func sendCancelNotification(requestId: RequestId, message: String?) async {
-        let cancelNotification = CancelRequestNotification(requestId: requestId, message: message)
+    private func sendCancelNotification(requestId: RequestId) async {
+        let cancelNotification = CancelRequestNotification(requestId: requestId)
         do {
             try await sendNotification(method: "$/cancel_request", params: cancelNotification)
         } catch {
@@ -353,7 +353,7 @@ public actor Protocol {
     /// for the request to complete gracefully. If the request doesn't complete in time, it's forcibly cancelled.
     private func handleRequestCancellation(requestId: RequestId) async {
         // Send cancel notification to the other side
-        await sendCancelNotification(requestId: requestId, message: "Request cancelled by client")
+        await sendCancelNotification(requestId: requestId)
 
         // Wait for graceful cancellation (up to gracefulCancellationTimeoutSeconds)
         // The request handler may finish its cleanup work within this time

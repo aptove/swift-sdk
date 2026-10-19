@@ -58,6 +58,7 @@ public struct V2ToolCallStatus: Codable, Sendable, Hashable, RawRepresentable, E
     public static let inProgress = V2ToolCallStatus(rawValue: "in_progress")
     public static let completed = V2ToolCallStatus(rawValue: "completed")
     public static let failed = V2ToolCallStatus(rawValue: "failed")
+    public static let cancelled = V2ToolCallStatus(rawValue: "cancelled")
 }
 
 extension V2ToolCallStatus: CustomStringConvertible {
@@ -229,6 +230,7 @@ public struct V2DiffChange: Codable, Sendable, Hashable {
 public enum V2ToolCallContent: Codable, Sendable, Hashable {
     case content(Content)
     case diff(Diff)
+    case terminal(Terminal)
     case unknown(type: String, rawJson: [String: JsonValue])
 
     public struct Content: Codable, Sendable, Hashable {
@@ -253,6 +255,17 @@ public enum V2ToolCallContent: Codable, Sendable, Hashable {
         }
     }
 
+    /// A display-only reference to an agent-owned terminal.
+    public struct Terminal: Codable, Sendable, Hashable {
+        public let terminalId: TerminalId
+        public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+        public init(terminalId: TerminalId, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
+            self.terminalId = terminalId
+            self._meta = _meta
+        }
+    }
+
     private enum TypeKey: String, CodingKey { case type }
 
     public init(from decoder: Decoder) throws {
@@ -263,6 +276,8 @@ public enum V2ToolCallContent: Codable, Sendable, Hashable {
             self = .content(try Content(from: decoder))
         case "diff":
             self = .diff(try Diff(from: decoder))
+        case "terminal":
+            self = .terminal(try Terminal(from: decoder))
         default:
             let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
             self = .unknown(type: typeStr, rawJson: raw)
@@ -277,6 +292,9 @@ public enum V2ToolCallContent: Codable, Sendable, Hashable {
             try v.encode(to: encoder)
         case .diff(let v):
             try typeContainer.encode("diff", forKey: .type)
+            try v.encode(to: encoder)
+        case .terminal(let v):
+            try typeContainer.encode("terminal", forKey: .type)
             try v.encode(to: encoder)
         case .unknown(_, let raw):
             var c = encoder.singleValueContainer()

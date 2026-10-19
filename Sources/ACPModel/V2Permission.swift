@@ -29,7 +29,35 @@ public struct V2PermissionOption: Codable, Sendable, Hashable {
 /// Open tagged union discriminated by `type`. Unknown types preserve the raw JSON.
 public enum V2RequestPermissionSubject: Codable, Sendable, Hashable {
     case toolCall(V2ToolCallUpdate, _meta: MetaField?) // swiftlint:disable:this identifier_name
+    case command(Command)
     case unknown(type: String, rawJson: [String: JsonValue])
+
+    /// **UNSTABLE** - Permission to execute `command` in `cwd` (must be an absolute path).
+    ///
+    /// `toolCallId` and `terminalId` only associate the permission with displayed state
+    /// and may be unavailable before execution starts. Selecting an allow option authorizes
+    /// the agent to execute the command; it does not ask the client to execute it.
+    public struct Command: Codable, Sendable, Hashable {
+        public let command: String
+        public let cwd: String
+        public let toolCallId: ToolCallId?
+        public let terminalId: TerminalId?
+        public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+        public init(
+            command: String,
+            cwd: String,
+            toolCallId: ToolCallId? = nil,
+            terminalId: TerminalId? = nil,
+            _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+        ) {
+            self.command = command
+            self.cwd = cwd
+            self.toolCallId = toolCallId
+            self.terminalId = terminalId
+            self._meta = _meta
+        }
+    }
 
     private enum TypeKey: String, CodingKey { case type }
     private enum ToolCallKeys: String, CodingKey {
@@ -46,6 +74,8 @@ public enum V2RequestPermissionSubject: Codable, Sendable, Hashable {
             let toolCall = try c.decode(V2ToolCallUpdate.self, forKey: .toolCall)
             let meta = try c.decodeIfPresent(MetaField.self, forKey: ._meta)
             self = .toolCall(toolCall, _meta: meta)
+        case "command":
+            self = .command(try Command(from: decoder))
         default:
             let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
             self = .unknown(type: typeStr, rawJson: raw)
@@ -59,6 +89,10 @@ public enum V2RequestPermissionSubject: Codable, Sendable, Hashable {
             try c.encode("tool_call", forKey: .type)
             try c.encode(toolCall, forKey: .toolCall)
             try c.encodeIfPresent(meta, forKey: ._meta)
+        case .command(let v):
+            var c = encoder.container(keyedBy: TypeKey.self)
+            try c.encode("command", forKey: .type)
+            try v.encode(to: encoder)
         case .unknown(_, let raw):
             var c = encoder.singleValueContainer()
             try c.encode(raw)

@@ -35,31 +35,21 @@ public struct CancelNotification: AcpNotification, AcpWithSessionId, Codable, Se
 /// Notification used to cancel a running request by its ID.
 ///
 /// This is similar to the LSP cancellation mechanism.
+/// The schema defines no other payload than `requestId` and `_meta`.
 public struct CancelRequestNotification: AcpNotification, Codable, Sendable, Hashable {
     /// The ID of the request to cancel
     public let requestId: RequestId
 
-    /// Optional message explaining the cancellation
-    public let message: String?
-
     /// Optional metadata
     public let _meta: MetaField? // swiftlint:disable:this identifier_name
 
-    /// Creates a cancel request notification.
-    ///
-    /// - Parameters:
-    ///   - requestId: The request to cancel
-    ///   - message: Optional explanation
-    ///   - meta: Optional metadata
-    public init(requestId: RequestId, message: String? = nil, meta: MetaField? = nil) {
+    public init(requestId: RequestId, meta: MetaField? = nil) {
         self.requestId = requestId
-        self.message = message
         self._meta = meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case requestId = "requestId"
-        case message = "message"
         case _meta = "_meta" // swiftlint:disable:this identifier_name
     }
 }
