@@ -1,5 +1,193 @@
 import Foundation
 
+// MARK: - V2UserMessage
+
+/// **UNSTABLE** - An upsert for a message the user sent (v2).
+///
+/// Messages are keyed by `messageId`: repeated updates with the same ID patch the stored
+/// message. A `content` value replaces everything accumulated for the message so far.
+public struct V2UserMessage: Sendable, Hashable {
+    public let messageId: MessageId
+    public let content: V2MaybeUndefined<[V2ContentBlock]>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        messageId: MessageId,
+        content: V2MaybeUndefined<[V2ContentBlock]> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.messageId = messageId
+        self.content = content
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case messageId, content
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2UserMessage: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        guard case .string(let idStr) = raw["messageId"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'messageId' in V2UserMessage"
+            )
+        }
+        self.messageId = MessageId(rawValue: idStr)
+        self.content = decodeMaybeUndefinedList(raw, key: "content")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(messageId, forKey: .messageId)
+        try encodeMaybeUndefined(content, forKey: .content, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
+// MARK: - V2AgentMessage
+
+/// **UNSTABLE** - An upsert for a message the agent sent (v2).
+///
+/// Same patch semantics as `V2UserMessage`.
+public struct V2AgentMessage: Sendable, Hashable {
+    public let messageId: MessageId
+    public let content: V2MaybeUndefined<[V2ContentBlock]>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        messageId: MessageId,
+        content: V2MaybeUndefined<[V2ContentBlock]> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.messageId = messageId
+        self.content = content
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case messageId, content
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2AgentMessage: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        guard case .string(let idStr) = raw["messageId"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'messageId' in V2AgentMessage"
+            )
+        }
+        self.messageId = MessageId(rawValue: idStr)
+        self.content = decodeMaybeUndefinedList(raw, key: "content")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(messageId, forKey: .messageId)
+        try encodeMaybeUndefined(content, forKey: .content, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
+// MARK: - V2AgentThought
+
+/// **UNSTABLE** - An upsert for the agent's internal reasoning (v2).
+///
+/// Same patch semantics as `V2UserMessage`.
+public struct V2AgentThought: Sendable, Hashable {
+    public let messageId: MessageId
+    public let content: V2MaybeUndefined<[V2ContentBlock]>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        messageId: MessageId,
+        content: V2MaybeUndefined<[V2ContentBlock]> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.messageId = messageId
+        self.content = content
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case messageId, content
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2AgentThought: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        guard case .string(let idStr) = raw["messageId"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'messageId' in V2AgentThought"
+            )
+        }
+        self.messageId = MessageId(rawValue: idStr)
+        self.content = decodeMaybeUndefinedList(raw, key: "content")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(messageId, forKey: .messageId)
+        try encodeMaybeUndefined(content, forKey: .content, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
+// MARK: - V2SessionInfoUpdate
+
+/// **UNSTABLE** - Update to session metadata (v2).
+///
+/// All fields have patch semantics: an omitted field leaves the existing session info
+/// unchanged, and `null` clears the corresponding value.
+public struct V2SessionInfoUpdate: Sendable, Hashable {
+    public let title: V2MaybeUndefined<String>
+    public let updatedAt: V2MaybeUndefined<String>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        title: V2MaybeUndefined<String> = .undefined,
+        updatedAt: V2MaybeUndefined<String> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.title = title
+        self.updatedAt = updatedAt
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case title, updatedAt
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2SessionInfoUpdate: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        self.title = decodeMaybeUndefined(raw, key: "title")
+        self.updatedAt = decodeMaybeUndefined(raw, key: "updatedAt")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try encodeMaybeUndefined(title, forKey: .title, into: &container)
+        try encodeMaybeUndefined(updatedAt, forKey: .updatedAt, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
 // MARK: - V2AvailableCommandInput
 
 /// **UNSTABLE** - The input specification for a command (v2).
@@ -204,14 +392,19 @@ public enum V2StateUpdate: Codable, Sendable, Hashable {
 /// Open tagged union discriminated by `sessionUpdate`. Unknown types preserve the raw JSON.
 public enum V2SessionUpdate: Codable, Sendable, Hashable {
     case userMessageChunk(V2ContentChunk)
+    case userMessage(V2UserMessage)
     case agentMessageChunk(V2ContentChunk)
+    case agentMessage(V2AgentMessage)
     case agentThoughtChunk(V2ContentChunk)
+    case agentThought(V2AgentThought)
     case stateUpdate(V2StateUpdate)
     case toolCallContentChunk(V2ToolCallContentChunk)
+    case toolCallUpdate(V2ToolCallUpdate)
     case planUpdate(V2PlanUpdate)
     case planRemoved(V2PlanRemoved)
     case availableCommandsUpdate(V2AvailableCommandsUpdate)
     case configOptionUpdate(V2ConfigOptionUpdate)
+    case sessionInfoUpdate(V2SessionInfoUpdate)
     case usageUpdate(V2UsageUpdate)
     case unknown(sessionUpdate: String, rawJson: [String: JsonValue])
 
@@ -223,14 +416,22 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
         switch typeStr {
         case "user_message_chunk":
             self = .userMessageChunk(try V2ContentChunk(from: decoder))
+        case "user_message":
+            self = .userMessage(try V2UserMessage(from: decoder))
         case "agent_message_chunk":
             self = .agentMessageChunk(try V2ContentChunk(from: decoder))
+        case "agent_message":
+            self = .agentMessage(try V2AgentMessage(from: decoder))
         case "agent_thought_chunk":
             self = .agentThoughtChunk(try V2ContentChunk(from: decoder))
+        case "agent_thought":
+            self = .agentThought(try V2AgentThought(from: decoder))
         case "state_update":
             self = .stateUpdate(try V2StateUpdate(from: decoder))
         case "tool_call_content_chunk":
             self = .toolCallContentChunk(try V2ToolCallContentChunk(from: decoder))
+        case "tool_call_update":
+            self = .toolCallUpdate(try V2ToolCallUpdate(from: decoder))
         case "plan_update":
             self = .planUpdate(try V2PlanUpdate(from: decoder))
         case "plan_removed":
@@ -239,6 +440,8 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             self = .availableCommandsUpdate(try V2AvailableCommandsUpdate(from: decoder))
         case "config_option_update":
             self = .configOptionUpdate(try V2ConfigOptionUpdate(from: decoder))
+        case "session_info_update":
+            self = .sessionInfoUpdate(try V2SessionInfoUpdate(from: decoder))
         case "usage_update":
             self = .usageUpdate(try V2UsageUpdate(from: decoder))
         default:
@@ -253,17 +456,29 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
         case .userMessageChunk(let v):
             try discContainer.encode("user_message_chunk", forKey: .sessionUpdate)
             try v.encode(to: encoder)
+        case .userMessage(let v):
+            try discContainer.encode("user_message", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
         case .agentMessageChunk(let v):
             try discContainer.encode("agent_message_chunk", forKey: .sessionUpdate)
             try v.encode(to: encoder)
+        case .agentMessage(let v):
+            try discContainer.encode("agent_message", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
         case .agentThoughtChunk(let v):
             try discContainer.encode("agent_thought_chunk", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .agentThought(let v):
+            try discContainer.encode("agent_thought", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .stateUpdate(let v):
             try discContainer.encode("state_update", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .toolCallContentChunk(let v):
             try discContainer.encode("tool_call_content_chunk", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .toolCallUpdate(let v):
+            try discContainer.encode("tool_call_update", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .planUpdate(let v):
             try discContainer.encode("plan_update", forKey: .sessionUpdate)
@@ -276,6 +491,9 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             try v.encode(to: encoder)
         case .configOptionUpdate(let v):
             try discContainer.encode("config_option_update", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .sessionInfoUpdate(let v):
+            try discContainer.encode("session_info_update", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .usageUpdate(let v):
             try discContainer.encode("usage_update", forKey: .sessionUpdate)

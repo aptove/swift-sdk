@@ -285,6 +285,106 @@ public enum V2ToolCallContent: Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - V2ToolCallUpdate
+
+/// **UNSTABLE** - An upsert for a tool call that the language model has requested.
+///
+/// Replaces v1's separate `tool_call` / `tool_call_update` variants: creation and update use
+/// the same `tool_call_update` session update, keyed by `toolCallId`.
+///
+/// Only `toolCallId` is required. Other fields have patch semantics via `V2MaybeUndefined`:
+/// an omitted field leaves the existing tool call value unchanged, `null` clears it, and a
+/// concrete value replaces it.
+public struct V2ToolCallUpdate: Sendable, Hashable {
+    public let toolCallId: ToolCallId
+    public let title: V2MaybeUndefined<String>
+    public let kind: V2MaybeUndefined<V2ToolKind>
+    public let status: V2MaybeUndefined<V2ToolCallStatus>
+    public let content: V2MaybeUndefined<[V2ToolCallContent]>
+    public let locations: V2MaybeUndefined<[ToolCallLocation]>
+    public let rawInput: V2MaybeUndefined<JsonValue>
+    public let rawOutput: V2MaybeUndefined<JsonValue>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        toolCallId: ToolCallId,
+        title: V2MaybeUndefined<String> = .undefined,
+        kind: V2MaybeUndefined<V2ToolKind> = .undefined,
+        status: V2MaybeUndefined<V2ToolCallStatus> = .undefined,
+        content: V2MaybeUndefined<[V2ToolCallContent]> = .undefined,
+        locations: V2MaybeUndefined<[ToolCallLocation]> = .undefined,
+        rawInput: V2MaybeUndefined<JsonValue> = .undefined,
+        rawOutput: V2MaybeUndefined<JsonValue> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.toolCallId = toolCallId
+        self.title = title
+        self.kind = kind
+        self.status = status
+        self.content = content
+        self.locations = locations
+        self.rawInput = rawInput
+        self.rawOutput = rawOutput
+        self._meta = _meta
+    }
+
+    /// Applies a later tool-call patch to this stored tool-call state.
+    public func applyUpdate(_ update: V2ToolCallUpdate) -> V2ToolCallUpdate {
+        precondition(toolCallId == update.toolCallId,
+                     "Cannot apply update for tool call '\(update.toolCallId)' to tool call '\(toolCallId)'")
+        return V2ToolCallUpdate(
+            toolCallId: toolCallId,
+            title: update.title.orElse(title),
+            kind: update.kind.orElse(kind),
+            status: update.status.orElse(status),
+            content: update.content.orElse(content),
+            locations: update.locations.orElse(locations),
+            rawInput: update.rawInput.orElse(rawInput),
+            rawOutput: update.rawOutput.orElse(rawOutput),
+            _meta: update._meta.orElse(_meta)
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case toolCallId, title, kind, status, content, locations, rawInput, rawOutput
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2ToolCallUpdate: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        guard case .string(let idStr) = raw["toolCallId"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'toolCallId' in V2ToolCallUpdate"
+            )
+        }
+        self.toolCallId = ToolCallId(value: idStr)
+        self.title = decodeMaybeUndefined(raw, key: "title")
+        self.kind = decodeMaybeUndefined(raw, key: "kind")
+        self.status = decodeMaybeUndefined(raw, key: "status")
+        self.content = decodeMaybeUndefinedList(raw, key: "content")
+        self.locations = decodeMaybeUndefinedList(raw, key: "locations")
+        self.rawInput = decodeMaybeUndefined(raw, key: "rawInput")
+        self.rawOutput = decodeMaybeUndefined(raw, key: "rawOutput")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(toolCallId, forKey: .toolCallId)
+        try encodeMaybeUndefined(title, forKey: .title, into: &container)
+        try encodeMaybeUndefined(kind, forKey: .kind, into: &container)
+        try encodeMaybeUndefined(status, forKey: .status, into: &container)
+        try encodeMaybeUndefined(content, forKey: .content, into: &container)
+        try encodeMaybeUndefined(locations, forKey: .locations, into: &container)
+        try encodeMaybeUndefined(rawInput, forKey: .rawInput, into: &container)
+        try encodeMaybeUndefined(rawOutput, forKey: .rawOutput, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
 // MARK: - V2ToolCallContentChunk
 
 /// **UNSTABLE** - A streamed item of tool-call content (v2).

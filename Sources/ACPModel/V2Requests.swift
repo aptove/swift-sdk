@@ -1,5 +1,59 @@
 import Foundation
 
+// MARK: - V2InitializeRequest
+
+/// **UNSTABLE** - Request parameters for the `initialize` method (v2).
+///
+/// Sent by the client to establish connection and negotiate capabilities.
+public struct V2InitializeRequest: Codable, Sendable, Hashable {
+    public let protocolVersion: ProtocolVersion
+    public let info: Implementation
+    public let capabilities: V2ClientCapabilities
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        protocolVersion: ProtocolVersion,
+        info: Implementation,
+        capabilities: V2ClientCapabilities = V2ClientCapabilities(),
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.protocolVersion = protocolVersion
+        self.info = info
+        self.capabilities = capabilities
+        self._meta = _meta
+    }
+}
+
+// MARK: - V2InitializeResponse
+
+/// **UNSTABLE** - Response from the `initialize` method (v2).
+///
+/// Contains the negotiated protocol version and agent capabilities.
+///
+/// A non-empty `authMethods` list means the agent implements both `auth/login` and
+/// `auth/logout`. An omitted or empty list means clients must not call either.
+public struct V2InitializeResponse: Codable, Sendable, Hashable {
+    public let protocolVersion: ProtocolVersion
+    public let info: Implementation
+    public let capabilities: V2AgentCapabilities
+    public let authMethods: [V2AuthMethod]
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        protocolVersion: ProtocolVersion,
+        info: Implementation,
+        capabilities: V2AgentCapabilities = V2AgentCapabilities(),
+        authMethods: [V2AuthMethod] = [],
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.protocolVersion = protocolVersion
+        self.info = info
+        self.capabilities = capabilities
+        self.authMethods = authMethods
+        self._meta = _meta
+    }
+}
+
 // MARK: - V2PermissionOptionKind
 
 /// **UNSTABLE** - The type of permission option being presented to the user.
