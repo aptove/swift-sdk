@@ -239,6 +239,101 @@ struct ClientMain {
 }
 ```
 
+### Use the V2 protocol
+
+The V2 protocol uses `ACPProtocol` directly instead of the high-level `AgentConnection`/`ClientConnection` wrappers. The example below runs a V2 agent and client in-process:
+
+```swift
+import ACP
+import ACPModel
+import Foundation
+
+// Register V2 handlers on an ACPProtocol instance
+func registerAgentHandlers(proto: ACPProtocol) async {
+    let info = Implementation(name: "MyV2Agent", version: "1.0.0")
+
+    await proto.onRequest(method: "initialize", requestType: V2InitializeRequest.self) { _ in
+        V2InitializeResponse(protocolVersion: .v2, info: info, capabilities: V2AgentCapabilities())
+    }
+
+    await proto.onRequest(method: "session/new", requestType: V2NewSessionRequest.self) { _ in
+        V2NewSessionResponse(sessionId: SessionId())
+    }
+
+    await proto.onRequest(method: "session/prompt", requestType: V2PromptRequest.self) { [proto] req in
+        let text = req.prompt.compactMap { if case .text(let t) = $0 { return t.text } else { return nil } }.joined()
+
+        // Send session updates back to the client
+        try await proto.sendNotification(method: "session/update", params:
+            V2UpdateSessionNotification(sessionId: req.sessionId, update: .stateUpdate(.running(_meta: nil))))
+        try await proto.sendNotification(method: "session/update", params:
+            V2UpdateSessionNotification(sessionId: req.sessionId, update: .agentMessageChunk(
+                V2ContentChunk(messageId: MessageId(rawValue: UUID().uuidString),
+                               content: .text(V2ContentBlock.Text(text: text)), _meta: nil))))
+        try await proto.sendNotification(method: "session/update", params:
+            V2UpdateSessionNotification(sessionId: req.sessionId, update: .stateUpdate(.idle(stopReason: .endTurn, usage: nil, _meta: nil))))
+
+        return V2PromptResponse()
+    }
+}
+
+// Run a prompt turn and collect session updates
+func sendPrompt(proto: ACPProtocol, sessionId: SessionId, text: String) async throws {
+    let (updates, cont) = AsyncStream<V2SessionUpdate>.makeStream()
+
+    await proto.onNotification(method: "session/update") { notification in
+        guard let params = notification.params,
+              let data = try? JSONEncoder().encode(params),
+              let notif = try? JSONDecoder().decode(V2UpdateSessionNotification.self, from: data) else { return }
+        cont.yield(notif.update)
+    }
+
+    let collectTask = Task {
+        for await update in updates {
+            if case .agentMessageChunk(let chunk) = update, case .text(let t) = chunk.content {
+                print("Agent: \(t.text)")
+            }
+            if case .stateUpdate(.idle) = update { cont.finish(); break }
+        }
+    }
+
+    _ = try await proto.request(
+        method: "session/prompt",
+        params: V2PromptRequest(sessionId: sessionId, prompt: [.text(V2ContentBlock.Text(text: text))]),
+        responseType: V2PromptResponse.self
+    )
+    await collectTask.value
+}
+
+// Wire up in-process agent and client
+let (clientTransport, agentTransport) = InMemoryPipeTransport.createPair()
+let agentProto = ACPProtocol(transport: agentTransport)
+let clientProto = ACPProtocol(transport: clientTransport)
+
+await registerAgentHandlers(proto: agentProto)
+try await agentProto.start()
+try await clientProto.start()
+
+_ = try await clientProto.request(
+    method: "initialize",
+    params: V2InitializeRequest(protocolVersion: .v2, info: Implementation(name: "MyClient", version: "1.0.0")),
+    responseType: V2InitializeResponse.self
+)
+
+let sessionResp = try await clientProto.request(
+    method: "session/new",
+    params: V2NewSessionRequest(cwd: FileManager.default.currentDirectoryPath),
+    responseType: V2NewSessionResponse.self
+)
+
+try await sendPrompt(proto: clientProto, sessionId: sessionResp.sessionId, text: "Hello V2!")
+
+await agentProto.close()
+await clientProto.close()
+```
+
+> The `InMemoryPipeTransport` used above is defined in `Samples/V2SimpleAgentApp/main.swift` and is not part of the SDK library — copy it into your own code or use a real transport like `StdioTransport`.
+
 ## Sample projects
 
 | Sample | Description | Command |
