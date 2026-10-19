@@ -21,6 +21,9 @@ public struct ListSessionsRequest: Codable, Sendable, Hashable {
     /// Optional filter to list sessions from a specific working directory.
     public let cwd: String?
 
+    /// Optional filter to list sessions containing specific additional directories.
+    public let additionalDirectories: [String]?
+
     /// Optional metadata for protocol extensibility.
     public let _meta: JsonValue? // swiftlint:disable:this identifier_name
 
@@ -29,14 +32,17 @@ public struct ListSessionsRequest: Codable, Sendable, Hashable {
     /// - Parameters:
     ///   - cursor: Optional pagination cursor from previous response
     ///   - cwd: Optional filter by working directory
+    ///   - additionalDirectories: Optional filter by additional directories
     ///   - _meta: Optional metadata for protocol extensibility
     public init(
         cursor: Cursor? = nil,
         cwd: String? = nil,
+        additionalDirectories: [String]? = nil,
         _meta: JsonValue? = nil // swiftlint:disable:this identifier_name
     ) {
         self.cursor = cursor
         self.cwd = cwd
+        self.additionalDirectories = additionalDirectories
         self._meta = _meta
     }
 }
