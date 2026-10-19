@@ -52,7 +52,7 @@ public struct SessionConfigSelectGroup: Codable, Sendable, Hashable {
     public let group: SessionConfigGroupId
 
     /// Display name for the group
-    public let name: String
+    public let name: String?
 
     /// Options within this group
     public let options: [SessionConfigSelectOption]
@@ -64,12 +64,12 @@ public struct SessionConfigSelectGroup: Codable, Sendable, Hashable {
     ///
     /// - Parameters:
     ///   - group: The group identifier
-    ///   - name: Display name
+    ///   - name: Optional display name
     ///   - options: Options in this group
     ///   - _meta: Optional metadata
     public init(
         group: SessionConfigGroupId,
-        name: String,
+        name: String? = nil,
         options: [SessionConfigSelectOption],
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
