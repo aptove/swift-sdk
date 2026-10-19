@@ -164,21 +164,27 @@ public struct UserMessageChunk: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Optional message identifier for correlation
     public let messageId: MessageId?
 
-    public init(content: ContentBlock, messageId: MessageId? = nil) {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(content: ContentBlock, messageId: MessageId? = nil, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
         self.content = content
         self.messageId = messageId
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
         case messageId = "messageId"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
         messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -186,6 +192,7 @@ public struct UserMessageChunk: Codable, Sendable, Hashable {
         try container.encode("user_message_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
         try container.encodeIfPresent(messageId, forKey: .messageId)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
     }
 }
 
@@ -196,21 +203,27 @@ public struct AgentMessageChunk: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Optional message identifier for correlation
     public let messageId: MessageId?
 
-    public init(content: ContentBlock, messageId: MessageId? = nil) {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(content: ContentBlock, messageId: MessageId? = nil, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
         self.content = content
         self.messageId = messageId
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
         case messageId = "messageId"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
         messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -218,6 +231,7 @@ public struct AgentMessageChunk: Codable, Sendable, Hashable {
         try container.encode("agent_message_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
         try container.encodeIfPresent(messageId, forKey: .messageId)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
     }
 }
 
@@ -228,21 +242,27 @@ public struct AgentThoughtChunk: Codable, Sendable, Hashable {
     /// **UNSTABLE** - Optional message identifier for correlation
     public let messageId: MessageId?
 
-    public init(content: ContentBlock, messageId: MessageId? = nil) {
+    /// Optional metadata
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(content: ContentBlock, messageId: MessageId? = nil, _meta: MetaField? = nil) { // swiftlint:disable:this identifier_name
         self.content = content
         self.messageId = messageId
+        self._meta = _meta
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionUpdate = "sessionUpdate"
         case content = "content"
         case messageId = "messageId"
+        case _meta = "_meta" // swiftlint:disable:this identifier_name
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         content = try container.decode(ContentBlock.self, forKey: .content)
         messageId = try container.decodeIfPresent(MessageId.self, forKey: .messageId)
+        _meta = try container.decodeIfPresent(MetaField.self, forKey: ._meta)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -250,5 +270,6 @@ public struct AgentThoughtChunk: Codable, Sendable, Hashable {
         try container.encode("agent_thought_chunk", forKey: .sessionUpdate)
         try container.encode(content, forKey: .content)
         try container.encodeIfPresent(messageId, forKey: .messageId)
+        try container.encodeIfPresent(_meta, forKey: ._meta)
     }
 }

@@ -73,6 +73,11 @@ public struct ProviderInfo: Codable, Sendable, Hashable {
         self.current = current
         self._meta = _meta
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "providerId"
+        case supported, required, current, _meta
+    }
 }
 
 // MARK: - Providers Requests
@@ -107,6 +112,11 @@ public struct SetProvidersRequest: AcpRequest, Codable, Sendable, Hashable {
         self.headers = headers
         self._meta = _meta
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "providerId"
+        case apiType, baseUrl, headers, _meta
+    }
 }
 
 /// **UNSTABLE** - Request parameters for `providers/disable`.
@@ -120,6 +130,11 @@ public struct DisableProvidersRequest: AcpRequest, Codable, Sendable, Hashable {
     ) {
         self.id = id
         self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id = "providerId"
+        case _meta
     }
 }
 
