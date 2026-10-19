@@ -323,6 +323,169 @@ public struct V2UsageUpdate: Codable, Sendable, Hashable {
     }
 }
 
+// MARK: - V2NoticeSeverity
+
+/// **UNSTABLE** - Severity of a session notice (v2).
+///
+/// Open string enum: unrecognized values are preserved via `rawValue`.
+public struct V2NoticeSeverity: Codable, Sendable, Hashable, RawRepresentable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: String) { self.rawValue = value }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        self.rawValue = try c.decode(String.self)
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
+    }
+
+    public static let info = V2NoticeSeverity(rawValue: "info")
+    public static let warning = V2NoticeSeverity(rawValue: "warning")
+    public static let error = V2NoticeSeverity(rawValue: "error")
+}
+
+// MARK: - V2Notice
+
+/// **UNSTABLE** - A live advisory notice from the agent (v2).
+///
+/// Notices are informational only: they MUST NOT carry information required for protocol
+/// correctness, authorization, user action, task completion, or fatal-error reporting.
+/// Clients may ignore them.
+public struct V2Notice: Codable, Sendable, Hashable {
+    public let severity: V2NoticeSeverity
+    public let title: String
+    public let description: String?
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        severity: V2NoticeSeverity,
+        title: String,
+        description: String? = nil,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.severity = severity
+        self.title = title
+        self.description = description
+        self._meta = _meta
+    }
+}
+
+// MARK: - V2CompactionStatus
+
+/// **UNSTABLE** - Status of a context compaction operation (v2).
+///
+/// Open string enum: unrecognized values are preserved via `rawValue`.
+public struct V2CompactionStatus: Codable, Sendable, Hashable, RawRepresentable, ExpressibleByStringLiteral {
+    public let rawValue: String
+
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(stringLiteral value: String) { self.rawValue = value }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        self.rawValue = try c.decode(String.self)
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
+    }
+
+    public static let inProgress = V2CompactionStatus(rawValue: "in_progress")
+    public static let completed = V2CompactionStatus(rawValue: "completed")
+    public static let failed = V2CompactionStatus(rawValue: "failed")
+    public static let cancelled = V2CompactionStatus(rawValue: "cancelled")
+}
+
+// MARK: - V2CompactionUpdate
+
+/// **UNSTABLE** - A context compaction event (v2).
+///
+/// The first update for a `compactionId` fixes its timeline position. `summary`, `error`, and
+/// `_meta` have patch semantics: omission leaves the existing value unchanged, `null` clears
+/// it, and a concrete value replaces it.
+public struct V2CompactionUpdate: Sendable, Hashable {
+    public let compactionId: String
+    public let status: V2CompactionStatus
+    public let summary: V2MaybeUndefined<[V2ContentBlock]>
+    public let error: V2MaybeUndefined<String>
+    public let _meta: V2MaybeUndefined<JsonValue> // swiftlint:disable:this identifier_name
+
+    public init(
+        compactionId: String,
+        status: V2CompactionStatus,
+        summary: V2MaybeUndefined<[V2ContentBlock]> = .undefined,
+        error: V2MaybeUndefined<String> = .undefined,
+        _meta: V2MaybeUndefined<JsonValue> = .undefined // swiftlint:disable:this identifier_name
+    ) {
+        self.compactionId = compactionId
+        self.status = status
+        self.summary = summary
+        self.error = error
+        self._meta = _meta
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case compactionId, status, summary, error
+        case _meta // swiftlint:disable:this identifier_name
+    }
+}
+
+extension V2CompactionUpdate: Codable {
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
+        guard case .string(let cid) = raw["compactionId"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'compactionId' in V2CompactionUpdate"
+            )
+        }
+        guard case .string(let statusStr) = raw["status"] else {
+            throw DecodingError.dataCorruptedError(
+                in: try decoder.singleValueContainer(),
+                debugDescription: "Missing 'status' in V2CompactionUpdate"
+            )
+        }
+        self.compactionId = cid
+        self.status = V2CompactionStatus(rawValue: statusStr)
+        self.summary = decodeMaybeUndefinedList(raw, key: "summary")
+        self.error = decodeMaybeUndefined(raw, key: "error")
+        self._meta = decodeMaybeUndefined(raw, key: "_meta")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(compactionId, forKey: .compactionId)
+        try container.encode(status, forKey: .status)
+        try encodeMaybeUndefined(summary, forKey: .summary, into: &container)
+        try encodeMaybeUndefined(error, forKey: .error, into: &container)
+        try encodeMaybeUndefined(_meta, forKey: ._meta, into: &container)
+    }
+}
+
+// MARK: - V2CompactionSummaryChunk
+
+/// **UNSTABLE** - One content block appended to a compaction's retained summary (v2).
+///
+/// Chunks are only valid between the initial `in_progress` update and the terminal update
+/// for the same `compactionId`.
+public struct V2CompactionSummaryChunk: Codable, Sendable, Hashable {
+    public let compactionId: String
+    public let content: V2ContentBlock
+    public let _meta: MetaField? // swiftlint:disable:this identifier_name
+
+    public init(
+        compactionId: String,
+        content: V2ContentBlock,
+        _meta: MetaField? = nil // swiftlint:disable:this identifier_name
+    ) {
+        self.compactionId = compactionId
+        self.content = content
+        self._meta = _meta
+    }
+}
+
 // MARK: - V2StateUpdate
 
 /// **UNSTABLE** - The agent's session state has changed (v2).
@@ -406,6 +569,9 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
     case configOptionUpdate(V2ConfigOptionUpdate)
     case sessionInfoUpdate(V2SessionInfoUpdate)
     case usageUpdate(V2UsageUpdate)
+    case notice(V2Notice)
+    case compactionUpdate(V2CompactionUpdate)
+    case compactionSummaryChunk(V2CompactionSummaryChunk)
     case unknown(sessionUpdate: String, rawJson: [String: JsonValue])
 
     private enum DiscKey: String, CodingKey { case sessionUpdate }
@@ -444,6 +610,12 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             self = .sessionInfoUpdate(try V2SessionInfoUpdate(from: decoder))
         case "usage_update":
             self = .usageUpdate(try V2UsageUpdate(from: decoder))
+        case "notice":
+            self = .notice(try V2Notice(from: decoder))
+        case "compaction_update":
+            self = .compactionUpdate(try V2CompactionUpdate(from: decoder))
+        case "compaction_summary_chunk":
+            self = .compactionSummaryChunk(try V2CompactionSummaryChunk(from: decoder))
         default:
             let raw = try decoder.singleValueContainer().decode([String: JsonValue].self)
             self = .unknown(sessionUpdate: typeStr, rawJson: raw)
@@ -497,6 +669,15 @@ public enum V2SessionUpdate: Codable, Sendable, Hashable {
             try v.encode(to: encoder)
         case .usageUpdate(let v):
             try discContainer.encode("usage_update", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .notice(let v):
+            try discContainer.encode("notice", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .compactionUpdate(let v):
+            try discContainer.encode("compaction_update", forKey: .sessionUpdate)
+            try v.encode(to: encoder)
+        case .compactionSummaryChunk(let v):
+            try discContainer.encode("compaction_summary_chunk", forKey: .sessionUpdate)
             try v.encode(to: encoder)
         case .unknown(_, let raw):
             var c = encoder.singleValueContainer()
