@@ -1,5 +1,43 @@
 import Foundation
 
+// MARK: - SessionConfigOptionCategory
+
+/// Category for a session configuration option.
+///
+/// Well-known categories are provided as constants. Custom categories are supported
+/// via the constructor, matching the protocol's open string-based design.
+public struct SessionConfigOptionCategory: Codable, Sendable, Hashable, RawRepresentable {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public static let mode = SessionConfigOptionCategory(rawValue: "mode")
+    public static let model = SessionConfigOptionCategory(rawValue: "model")
+    public static let thoughtLevel = SessionConfigOptionCategory(rawValue: "thought_level")
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.rawValue = try container.decode(String.self)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+extension SessionConfigOptionCategory: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+}
+
+extension SessionConfigOptionCategory: CustomStringConvertible {
+    public var description: String { rawValue }
+}
+
 // MARK: - Session Config Select Option
 
 /// **UNSTABLE**
@@ -209,6 +247,9 @@ public struct SessionConfigOptionBoolean: Codable, Sendable, Hashable {
     /// Optional description
     public let description: String?
 
+    /// Optional category for grouping
+    public let category: SessionConfigOptionCategory?
+
     /// The current boolean value
     public let currentValue: Bool
 
@@ -219,12 +260,14 @@ public struct SessionConfigOptionBoolean: Codable, Sendable, Hashable {
         id: SessionConfigId,
         name: String,
         description: String? = nil,
+        category: SessionConfigOptionCategory? = nil,
         currentValue: Bool,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
     ) {
         self.id = id
         self.name = name
         self.description = description
+        self.category = category
         self.currentValue = currentValue
         self._meta = _meta
     }
@@ -241,6 +284,9 @@ public struct SessionConfigOptionSelect: Codable, Sendable, Hashable {
     /// Optional description
     public let description: String?
 
+    /// Optional category for grouping
+    public let category: SessionConfigOptionCategory?
+
     /// The currently selected value
     public let currentValue: SessionConfigValueId
 
@@ -256,6 +302,7 @@ public struct SessionConfigOptionSelect: Codable, Sendable, Hashable {
     ///   - id: The configuration option identifier
     ///   - name: Display name
     ///   - description: Optional description
+    ///   - category: Optional category
     ///   - currentValue: Currently selected value
     ///   - options: Available options
     ///   - _meta: Optional metadata
@@ -263,6 +310,7 @@ public struct SessionConfigOptionSelect: Codable, Sendable, Hashable {
         id: SessionConfigId,
         name: String,
         description: String? = nil,
+        category: SessionConfigOptionCategory? = nil,
         currentValue: SessionConfigValueId,
         options: SessionConfigSelectOptions,
         _meta: MetaField? = nil // swiftlint:disable:this identifier_name
@@ -270,6 +318,7 @@ public struct SessionConfigOptionSelect: Codable, Sendable, Hashable {
         self.id = id
         self.name = name
         self.description = description
+        self.category = category
         self.currentValue = currentValue
         self.options = options
         self._meta = _meta
