@@ -27,31 +27,9 @@ public let package = Package(
             name: "ACPHTTP",
             targets: ["ACPHTTP"]
         ),
-        // Sample: SimpleAgentApp (v1 in-process agent + client demo)
-        .executable(
-            name: "SimpleAgentApp",
-            targets: ["SimpleAgentApp"]
-        ),
-        // Sample: V2SimpleAgentApp (v2 in-process agent + client demo)
-        .executable(
-            name: "V2SimpleAgentApp",
-            targets: ["V2SimpleAgentApp"]
-        ),
-        // Sample: V2NegotiationApp (v2 in-process with protocol negotiation)
-        .executable(
-            name: "V2NegotiationApp",
-            targets: ["V2NegotiationApp"]
-        ),
-        // Sample: AuthStatusApp (auth/status for v1 and v2 agents)
-        .executable(
-            name: "AuthStatusApp",
-            targets: ["AuthStatusApp"]
-        ),
-        // Sample: GeminiClientApp (interactive client connecting to external agent)
-        .executable(
-            name: "GeminiClientApp",
-            targets: ["GeminiClientApp"]
-        )
+        // Note: sample executables (SimpleAgentApp, V2SimpleAgentApp, etc.) are kept as
+        // targets for local `swift run` use but are not listed as products so that package
+        // index build systems don't attempt to compile them on unsupported platforms.
     ],
     dependencies: [
         // Logging framework
