@@ -4,8 +4,6 @@
 
 # ACP Swift SDK
 
-> **Real-world example:** For a production client-side integration, see the [Aptove iOS App](https://github.com/aptove/ios) — a full SwiftUI chat client built on this SDK.
-
 [![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -14,6 +12,7 @@
 A Swift implementation of the [Agent Client Protocol (ACP)](https://agentclientprotocol.com) for building AI agent clients and servers. Ship ACP-compliant agents, clients, and transports for iOS apps, macOS tools, CLI utilities, or any Swift-based host.
 
 > **Note:** This SDK is a Swift port of the [ACP Kotlin SDK](https://github.com/agentclientprotocol/kotlin-sdk) (v0.33.0), providing equivalent functionality with Swift-native APIs and idioms.
+> For a production client-side integration, see the [Aptove iOS App](https://github.com/aptove/ios) — a full SwiftUI chat client built on this SDK.
 
 ## What is ACP Swift SDK?
 
