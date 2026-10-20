@@ -63,10 +63,10 @@ Then add the desired targets as dependencies:
 .target(
     name: "YourTarget",
     dependencies: [
-        .product(name: "ACPModel", package: "ACP"),
-        .product(name: "ACP", package: "ACP"),
+        .product(name: "ACPModel", package: "swift-sdk"),
+        .product(name: "ACP", package: "swift-sdk"),
         // Optional:
-        // .product(name: "ACPHTTP", package: "ACP"),
+        // .product(name: "ACPHTTP", package: "swift-sdk"),
     ]
 )
 ```
