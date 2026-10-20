@@ -4,6 +4,8 @@
 
 # ACP Swift SDK
 
+> **Real-world example:** For a production client-side integration, see the [Aptove iOS App](https://github.com/aptove/ios) — a full SwiftUI chat client built on this SDK.
+
 [![Swift](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-macOS%20|%20iOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
