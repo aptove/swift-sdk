@@ -23,13 +23,13 @@ public let package = Package(
             targets: ["ACP"]
         ),
         // acp-http: Optional HTTP/WebSocket transports
-        .library(
-            name: "ACPHTTP",
-            targets: ["ACPHTTP"]
-        ),
         // Note: sample executables (SimpleAgentApp, V2SimpleAgentApp, etc.) are kept as
         // targets for local `swift run` use but are not listed as products so that package
         // index build systems don't attempt to compile them on unsupported platforms.
+        .library(
+            name: "ACPHTTP",
+            targets: ["ACPHTTP"]
+        )
     ],
     dependencies: [
         // Logging framework
